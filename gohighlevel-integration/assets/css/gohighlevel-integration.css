@@ -545,11 +545,11 @@
 
 /* "Name, Title" ----------------------------------------------------------- */
 
-/* The credential sits on the name line but reads as secondary to it, so a card
-   still scans as a list of names. */
+/* The credential reads as part of the name itself, so it takes the heading's
+   own weight and colour; nowrap just keeps ", MD" from wrapping on its own. */
 .ghld-name-title {
-	font-weight: 400;
-	color: var(--ghld-muted);
+	font-weight: inherit;
+	color: inherit;
 	white-space: nowrap;
 }
 
