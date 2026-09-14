@@ -229,7 +229,7 @@ class GHLD_Admin {
 						<th scope="row"><label for="ghld-include"><?php esc_html_e( 'Only include tags', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ghld-include" name="<?php echo esc_attr( $name ); ?>[include_tags]" value="<?php echo esc_attr( $settings['include_tags'] ); ?>" />
-							<p class="description"><?php esc_html_e( 'Comma-separated. Strongly recommended: tag the contacts who have agreed to be listed (e.g. "directory") so private CRM records never appear on a public page.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Comma-separated, and set to "member - physician" by default. Only contacts carrying one of these tags are listed. Leaving this empty makes every synced contact listable, so keep it set unless that is really what you want.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -416,7 +416,7 @@ class GHLD_Admin {
 		<p><?php esc_html_e( 'Put the shortcode on any page or post:', 'gohighlevel-integration' ); ?></p>
 		<p><code>[ghl_directory]</code></p>
 		<p><?php esc_html_e( 'Every setting above can be overridden per shortcode:', 'gohighlevel-integration' ); ?></p>
-		<p><code>[ghl_directory tags="directory,speaker" columns="4" per_page="36" filters="search,tag,city,sort" show="photo,title,company,location,tags" layout="grid" orderby="name" order="asc"]</code></p>
+		<p><code>[ghl_directory tags="member - physician" columns="4" per_page="36" filters="search,tag,city,sort" show="photo,title,company,location,tags" layout="grid" orderby="name" order="asc"]</code></p>
 		<ul class="ul-disc">
 			<li><code>tags</code> / <code>exclude_tags</code> — <?php esc_html_e( 'narrow this directory to certain GoHighLevel tags (applied on top of the global setting).', 'gohighlevel-integration' ); ?></li>
 			<li><code>filters</code> — <?php esc_html_e( 'which controls appear in the filter bar: search, tag, city, state, company, sort, or cf:your_field_key. Use filters="none" to hide the bar.', 'gohighlevel-integration' ); ?></li>
@@ -434,13 +434,35 @@ class GHLD_Admin {
 	 * @return void
 	 */
 	protected static function field_options( array $fields, $selected ) {
+		$rendered = array();
+
 		foreach ( $fields as $field ) {
-			$value = 'cf:' . $field['key'];
+			$value      = 'cf:' . $field['key'];
+			$rendered[] = $value;
 			printf(
 				'<option value="%1$s" %2$s>%3$s</option>',
 				esc_attr( $value ),
 				selected( $selected, $value, false ),
 				esc_html( $field['name'] )
+			);
+		}
+
+		// A mapping can name a field the last sync didn't return — the sync
+		// hasn't run yet, or the token lacks the custom-fields scope. Render it
+		// anyway: a <select> that omits its own stored value would reset the
+		// mapping to "none" the next time the form is saved.
+		$selected = (string) $selected;
+		if ( 0 === strpos( $selected, 'cf:' ) && ! in_array( $selected, $rendered, true ) ) {
+			printf(
+				'<option value="%1$s" selected="selected">%2$s</option>',
+				esc_attr( $selected ),
+				esc_html(
+					sprintf(
+						/* translators: %s: custom field key. */
+						__( '%s (not seen in the last sync)', 'gohighlevel-integration' ),
+						substr( $selected, 3 )
+					)
+				)
 			);
 		}
 	}

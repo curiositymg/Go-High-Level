@@ -84,9 +84,20 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 		}
 		?>
 
-		<?php if ( $ghld_showing( 'tags' ) && ! empty( $ghld_contact['tags'] ) ) : ?>
+		<?php
+		// A tag the whole directory is scoped to is true of every card, so it
+		// is not worth a pill on each one.
+		$ghld_hidden_tag = GHLD_Repository::scope_tag( $data['scope'] );
+		$ghld_tags       = array();
+		foreach ( $ghld_contact['tags'] as $ghld_tag ) {
+			if ( '' === $ghld_hidden_tag || GHLD_Contact::lower( $ghld_tag ) !== $ghld_hidden_tag ) {
+				$ghld_tags[] = $ghld_tag;
+			}
+		}
+		?>
+		<?php if ( $ghld_showing( 'tags' ) && ! empty( $ghld_tags ) ) : ?>
 			<ul class="ghld-tags" role="list">
-				<?php foreach ( $ghld_contact['tags'] as $ghld_tag ) : ?>
+				<?php foreach ( $ghld_tags as $ghld_tag ) : ?>
 					<li class="ghld-tag"><?php echo esc_html( $ghld_tag ); ?></li>
 				<?php endforeach; ?>
 			</ul>

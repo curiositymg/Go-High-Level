@@ -313,8 +313,13 @@ class GHLD_Repository {
 			}
 		}
 
+		$hidden = self::scope_tag( $scope );
+
 		foreach ( $contacts as $contact ) {
 			foreach ( $contact['tags'] as $tag ) {
+				if ( '' !== $hidden && GHLD_Contact::lower( $tag ) === $hidden ) {
+					continue;
+				}
 				$facets['tag'][ $tag ] = isset( $facets['tag'][ $tag ] ) ? $facets['tag'][ $tag ] + 1 : 1;
 			}
 			foreach ( array( 'city', 'state', 'company' ) as $key ) {
@@ -344,6 +349,22 @@ class GHLD_Repository {
 		}
 
 		return $facets;
+	}
+
+	/**
+	 * The tag that every contact in this directory necessarily carries.
+	 *
+	 * When the scope is narrowed to exactly one tag, that tag is true of every
+	 * card, so offering it as a filter and printing it on every card is noise.
+	 * Two or more scope tags do distinguish contacts, so those stay visible.
+	 *
+	 * @param array $scope Resolved scope.
+	 * @return string Lowercased tag, or '' when nothing should be hidden.
+	 */
+	public static function scope_tag( array $scope ) {
+		$tags = isset( $scope['tags'] ) ? array_values( (array) $scope['tags'] ) : array();
+
+		return ( 1 === count( $tags ) ) ? GHLD_Contact::lower( $tags[0] ) : '';
 	}
 
 	/**

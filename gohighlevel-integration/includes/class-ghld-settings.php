@@ -22,13 +22,16 @@ class GHLD_Settings {
 	 */
 	public static function defaults() {
 		return array(
+			// `include_tags` and `photo_field` ship set to this site's own
+			// values so a fresh install lists the right people with the right
+			// headshots; both are editable under Settings -> GoHighLevel.
 			'api_version'   => 'v2',
 			'api_token'     => '',
 			'location_id'   => '',
 			'cache_minutes' => 60,
-			'include_tags'  => '',
+			'include_tags'  => 'member - physician',
 			'exclude_tags'  => '',
-			'photo_field'   => 'profile_photo',
+			'photo_field'   => 'cf:member_profile_photo',
 			'title_field'   => '',
 			'bio_field'     => '',
 			'extra_fields'  => array(),

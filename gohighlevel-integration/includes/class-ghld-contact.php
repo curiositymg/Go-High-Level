@@ -94,22 +94,32 @@ class GHLD_Contact {
 		$entries = array();
 
 		// v2 sends `customFields`, v1 sends `customField`; both as a list of
-		// {id, value} pairs. Some responses key the object by field ID instead.
-		foreach ( array( 'customFields', 'customField' ) as $key ) {
-			if ( ! isset( $raw[ $key ] ) || ! is_array( $raw[ $key ] ) ) {
+		// {id, value} pairs. Some responses key the object by field ID instead,
+		// carry the field key alongside the ID, or name the value `field_value`.
+		foreach ( array( 'customFields', 'customField' ) as $property ) {
+			if ( ! isset( $raw[ $property ] ) || ! is_array( $raw[ $property ] ) ) {
 				continue;
 			}
-			foreach ( $raw[ $key ] as $index => $entry ) {
+			foreach ( $raw[ $property ] as $index => $entry ) {
 				if ( is_array( $entry ) && isset( $entry['id'] ) ) {
-					$entries[ (string) $entry['id'] ] = isset( $entry['value'] ) ? $entry['value'] : '';
+					$entries[] = array(
+						'id'    => (string) $entry['id'],
+						'key'   => self::entry_key( $entry ),
+						'value' => self::entry_value( $entry ),
+					);
 				} elseif ( ! is_array( $entry ) && ! is_int( $index ) ) {
-					$entries[ (string) $index ] = $entry;
+					$entries[] = array(
+						'id'    => (string) $index,
+						'key'   => '',
+						'value' => $entry,
+					);
 				}
 			}
 		}
 
 		$values = array();
-		foreach ( $entries as $id => $value ) {
+		foreach ( $entries as $entry ) {
+			$value = $entry['value'];
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', array_map( 'strval', $value ) );
 			}
@@ -118,11 +128,60 @@ class GHLD_Contact {
 				continue;
 			}
 
-			$key            = isset( $field_map[ $id ]['key'] ) ? $field_map[ $id ]['key'] : sanitize_key( $id );
+			// Prefer the key from the synced field definitions, then one the
+			// payload carried itself, and only then the raw ID — so a mapping
+			// like cf:member_profile_photo still resolves when the custom-field
+			// definitions could not be fetched.
+			if ( isset( $field_map[ $entry['id'] ]['key'] ) ) {
+				$key = $field_map[ $entry['id'] ]['key'];
+			} elseif ( '' !== $entry['key'] ) {
+				$key = $entry['key'];
+			} else {
+				$key = sanitize_key( $entry['id'] );
+			}
+
 			$values[ $key ] = $value;
+
+			// Keep the payload's own key as an alias when it differs, so either
+			// spelling can be mapped.
+			if ( '' !== $entry['key'] && $entry['key'] !== $key && ! isset( $values[ $entry['key'] ] ) ) {
+				$values[ $entry['key'] ] = $value;
+			}
 		}
 
 		return $values;
+	}
+
+	/**
+	 * Field key carried on a custom-field entry, if any.
+	 *
+	 * @param array $entry Raw custom field entry.
+	 * @return string
+	 */
+	protected static function entry_key( array $entry ) {
+		foreach ( array( 'fieldKey', 'key' ) as $property ) {
+			if ( ! empty( $entry[ $property ] ) && is_string( $entry[ $property ] ) ) {
+				return GHLD_Client::field_key( array( 'fieldKey' => $entry[ $property ] ) );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Value carried on a custom-field entry, whatever it is called.
+	 *
+	 * @param array $entry Raw custom field entry.
+	 * @return mixed
+	 */
+	protected static function entry_value( array $entry ) {
+		foreach ( array( 'value', 'field_value', 'fieldValue' ) as $property ) {
+			if ( isset( $entry[ $property ] ) ) {
+				return $entry[ $property ];
+			}
+		}
+
+		return '';
 	}
 
 	/**

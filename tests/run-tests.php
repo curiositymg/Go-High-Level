@@ -79,8 +79,11 @@ function ghld_test_settings( array $overrides = array() ) {
 	return array_merge(
 		GHLD_Settings::defaults(),
 		array(
-			'photo_field' => 'cf:headshot',
-			'title_field' => 'cf:job_title',
+			// The shipped default scopes to one tag; the general cases below
+			// exercise unscoped behaviour and test that default separately.
+			'include_tags' => '',
+			'photo_field'  => 'cf:headshot',
+			'title_field'  => 'cf:job_title',
 		),
 		$overrides
 	);
@@ -404,6 +407,111 @@ $pagination = GHLD_Template::get(
 );
 ghld_ok( false !== strpos( $pagination, 'data-ghld-page="2"' ), 'pagination links carry the target page' );
 ghld_ok( false !== strpos( $pagination, 'ghld_page=2' ), 'pagination links work without JavaScript' );
+
+/* -------------------------------------------------------------------------
+ * Shipped defaults: physicians only, headshots from member_profile_photo
+ * ---------------------------------------------------------------------- */
+
+$defaults = GHLD_Settings::defaults();
+ghld_same( 'member - physician', $defaults['include_tags'], 'the default scope is the physician tag' );
+ghld_same( 'cf:member_profile_photo', $defaults['photo_field'], 'the default photo field is member_profile_photo' );
+
+$physician_fields = array(
+	'fld_mpp' => array(
+		'key'  => 'member_profile_photo',
+		'name' => 'Member Profile Photo',
+		'type' => 'TEXT',
+	),
+);
+
+$roster = array(
+	array(
+		'id'           => 'p1',
+		'firstName'    => 'Rosalind',
+		'lastName'     => 'Franklin',
+		'tags'         => array( 'Member - Physician', 'Cardiology' ),
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => 'https://cdn.example.com/franklin.jpg',
+			),
+		),
+	),
+	array(
+		'id'        => 'p2',
+		'firstName' => 'Jonas',
+		'lastName'  => 'Salk',
+		'tags'      => array( 'member - physician' ),
+	),
+	array(
+		'id'        => 'p3',
+		'firstName' => 'Office',
+		'lastName'  => 'Manager',
+		'tags'      => array( 'member - staff' ),
+	),
+);
+
+GHLD_Repository::flush();
+update_option( 'ghld_settings', $defaults );
+update_option( 'ghld_custom_fields', $physician_fields );
+
+$normalized = array();
+foreach ( $roster as $raw ) {
+	$normalized[] = GHLD_Contact::normalize( $raw, $physician_fields, $defaults );
+}
+update_option( 'ghld_contacts', $normalized );
+update_option(
+	'ghld_sync_state',
+	array(
+		'synced_at' => time(),
+		'count'     => count( $normalized ),
+		'mapping'   => GHLD_Contact::mapping_hash( $defaults ),
+	)
+);
+
+$default_scope = GHLD_Shortcode::build_scope( array() );
+ghld_same( array( 'member - physician' ), $default_scope['tags'], 'a bare shortcode inherits the physician scope' );
+
+$physicians = GHLD_Repository::query( $default_scope, GHLD_Shortcode::parse_request( array(), $default_scope ) );
+ghld_same( 2, $physicians['total'], 'contacts without the physician tag are never listed' );
+ghld_same( 'Rosalind Franklin', $physicians['items'][0]['name'], 'the physician roster is sorted by surname' );
+ghld_same( 'https://cdn.example.com/franklin.jpg', $physicians['items'][0]['photo'], 'headshots come from the member_profile_photo field' );
+ghld_same( '', $physicians['items'][1]['photo'], 'a physician with no headshot falls back to initials' );
+
+ghld_ok( ! isset( $physicians['facets']['tag']['Member - Physician'] ), 'the tag the whole directory is scoped to is hidden from the filter bar' );
+ghld_same( 1, $physicians['facets']['tag']['Cardiology'], 'tags that do distinguish contacts stay in the filter bar' );
+
+$card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $physicians['items'][0],
+		'scope'   => $default_scope,
+	)
+);
+ghld_ok( false === stripos( $card, 'Member - Physician' ), 'the scope tag is not printed on every card' );
+ghld_ok( false !== strpos( $card, 'Cardiology' ), 'other tags are still printed on the card' );
+
+$two_tags = array_merge( $default_scope, array( 'tags' => array( 'member - physician', 'member - staff' ) ) );
+ghld_same( '', GHLD_Repository::scope_tag( $two_tags ), 'two scope tags do distinguish contacts, so neither is hidden' );
+
+$unmapped = GHLD_Contact::normalize(
+	array(
+		'id'           => 'p4',
+		'firstName'    => 'Chien-Shiung',
+		'lastName'     => 'Wu',
+		'tags'         => array( 'member - physician' ),
+		'customFields' => array(
+			array(
+				'id'          => 'unknown-id',
+				'fieldKey'    => 'contact.member_profile_photo',
+				'field_value' => 'https://cdn.example.com/wu.jpg',
+			),
+		),
+	),
+	array(),
+	$defaults
+);
+ghld_same( 'https://cdn.example.com/wu.jpg', $unmapped['photo'], 'the photo still resolves from the key in the payload when field definitions are missing' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

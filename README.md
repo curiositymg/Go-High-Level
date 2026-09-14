@@ -3,6 +3,11 @@
 Pulls contacts out of a GoHighLevel (LeadConnector) sub-account and renders them
 as a filterable directory on any page, via `[ghl_directory]`.
 
+Out of the box it is configured for this site: it lists only contacts tagged
+**`member - physician`**, and takes each headshot from the
+**`contact.member_profile_photo`** custom field. Both are editable under
+Settings → GoHighLevel, and either can be overridden per shortcode.
+
 ```
 .
 ├── build-zip.sh                  # packages the plugin into an installable zip
@@ -60,7 +65,7 @@ never appears in a database dump or in the settings form.
 ```
 [ghl_directory]
 
-[ghl_directory tags="directory" columns="4" per_page="36"
+[ghl_directory tags="member - physician" columns="4" per_page="36"
                filters="search,tag,city,sort"
                show="photo,title,company,location,tags"
                layout="grid" orderby="name" order="asc"]
@@ -111,8 +116,9 @@ lists the discovered fields by name after the first sync.
 A GoHighLevel location is a CRM, so most of its contacts are not meant to be
 public. The defaults are deliberately conservative:
 
-- **Set "Only include tags"** (e.g. `directory`) and tag the people who agreed to
-  be listed. With it empty, every synced contact is listable.
+- **"Only include tags" ships set to `member - physician`**, so only contacts
+  carrying that tag are ever listed. If you clear it, *every* synced contact
+  becomes listable — don't, unless that is really what you want.
 - Email and phone are **off** by default in the card settings.
 - The Gravatar fallback is **off** by default, because it sends a hash of each
   listed contact's email address to gravatar.com.
@@ -143,7 +149,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 60 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 73 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

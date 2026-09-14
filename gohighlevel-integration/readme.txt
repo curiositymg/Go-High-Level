@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,8 @@ Features:
   page loads never wait on the GoHighLevel API.
 * Photos come from a custom field of your choosing, GoHighLevel's own profile
   photo, or an optional Gravatar fallback — otherwise the card shows initials.
-* Tag scoping (include/exclude) so only contacts who agreed to be listed appear.
+* Tag scoping (include/exclude) so only contacts who agreed to be listed appear
+  — shipped scoped to the "member - physician" tag.
 * Filtering works without JavaScript, and is upgraded to fetch-without-reload
   when JavaScript is available.
 * Every template can be overridden from your theme.
@@ -50,8 +51,8 @@ instead of pasting it into the form:
 
 = Does this expose my whole CRM? =
 
-Only what you choose. Set "Only include tags" to something like `directory` and
-tag the contacts who agreed to be listed; email and phone are off by default.
+Only what you choose. "Only include tags" ships set to `member - physician`, so
+nothing outside that tag is listed; email and phone are off by default.
 
 = How often does it refresh? =
 
@@ -59,6 +60,16 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.1.0 =
+* Ship this site's own defaults: list only contacts tagged "member - physician",
+  and take headshots from the contact.member_profile_photo custom field.
+* Hide a tag the whole directory is scoped to from the filter bar and the cards,
+  where it is true of every contact anyway.
+* Resolve custom field values by the key carried in the payload when the field
+  definitions could not be fetched, and accept `field_value` as well as `value`.
+* Keep a field mapping that the last sync did not return instead of silently
+  resetting it to "none" on the next save.
 
 = 1.0.0 =
 * Initial release.
