@@ -314,7 +314,7 @@
 .ghld-directory .ghld-card .ghld-name,
 .ghld-directory .ghld-modal-title,
 .ghld-directory .ghld-name-button {
-	text-transform: none;
+	text-transform: capitalize;
 	font-variant: normal;
 }
 
@@ -398,9 +398,24 @@
 	cursor: pointer;
 }
 
-.ghld-modal-close:hover,
+/* No plate behind the glyph — themes give buttons a background of their own, so
+   this is stated at a specificity they can't outrank. Focus is shown with an
+   outline instead, which keeps the control visible to keyboard users. */
+.ghld-directory button.ghld-modal-close,
+.ghld-directory button.ghld-modal-close:hover,
+.ghld-directory button.ghld-modal-close:focus {
+	background: none;
+	box-shadow: none;
+	border: 0;
+}
+
+.ghld-modal-close:hover {
+	opacity: 0.6;
+}
+
 .ghld-modal-close:focus-visible {
-	background: rgba(127, 127, 127, 0.16);
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
 }
 
 .ghld-modal-title {

@@ -17,6 +17,16 @@ defined( 'ABSPATH' ) || exit;
 class GHLD_Contact {
 
 	/**
+	 * Bumped whenever apply_mapping() derives something new.
+	 *
+	 * It rides along in the mapping hash, so upgrading re-derives every cached
+	 * contact on the next page load instead of waiting for a sync.
+	 *
+	 * @var string
+	 */
+	const DERIVED_VERSION = '2';
+
+	/**
 	 * Normalize one contact.
 	 *
 	 * @param array $raw       Raw contact from the API.
@@ -274,6 +284,13 @@ class GHLD_Contact {
 	public static function apply_mapping( array $contact, array $settings ) {
 		$custom = isset( $contact['custom'] ) && is_array( $contact['custom'] ) ? $contact['custom'] : array();
 
+		// Idempotent: a name that already carries a capital is returned as-is.
+		foreach ( array( 'name', 'first_name', 'last_name' ) as $key ) {
+			if ( isset( $contact[ $key ] ) ) {
+				$contact[ $key ] = self::capitalize_name( $contact[ $key ] );
+			}
+		}
+
 		// The practice name usually lives in a custom field; the CRM's own
 		// Company value is the fallback when that field is empty.
 		$contact['company']   = self::mapped_value( $settings, 'company_field', $custom, $contact );
@@ -299,7 +316,7 @@ class GHLD_Contact {
 	 * @return string
 	 */
 	public static function mapping_hash( array $settings ) {
-		$relevant = array();
+		$relevant = array( 'derived' => self::DERIVED_VERSION );
 		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'company_field', 'fax_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
