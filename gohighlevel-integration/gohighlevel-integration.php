@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       GoHighLevel Integration
- * Plugin URI:        https://github.com/curiositymg/gohighlevel-integration
+ * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
  * Version:           1.1.0
  * Requires at least: 6.0
