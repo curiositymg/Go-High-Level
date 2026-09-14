@@ -119,6 +119,21 @@ def test_templates_escape_their_output(path):
         assert "phpcs:ignore" in stripped, f"{path.name}:{number} echoes unescaped output"
 
 
+def test_form_controls_do_not_force_full_width():
+    """The filter bar must not stretch fields or buttons to the column width."""
+    css = (PLUGIN_DIR / "assets" / "css" / "gohighlevel-integration.css").read_text()
+
+    block = re.search(r"\.ghld-input,\s*\.ghld-select \{(.*?)\}", css, re.DOTALL)
+    assert block, "the input/select rule is missing"
+    # (?<![a-z-]) so this does not match max-width / min-width.
+    assert not re.search(
+        r"(?<![a-z-])width:\s*100%", block.group(1)
+    ), "form fields must not be forced to full width"
+
+    button = re.search(r"^\.ghld-button \{(.*?)\}", css, re.DOTALL | re.MULTILINE)
+    assert button and "width: auto" in button.group(1), "buttons should size to their content"
+
+
 def test_no_short_open_tags():
     for path in php_files():
         assert "<?=" not in path.read_text(), f"{path.name} uses a short open tag"

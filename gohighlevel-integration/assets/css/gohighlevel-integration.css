@@ -58,7 +58,9 @@
 
 .ghld-input,
 .ghld-select {
-	width: 100%;
+	/* No width here — the theme's own form styling decides. max-width only
+	   stops a field overflowing its column on a narrow screen. */
+	max-width: 100%;
 	padding: 0.55rem 0.7rem;
 	border: 1px solid var(--ghld-border);
 	border-radius: calc(var(--ghld-radius) / 2);
