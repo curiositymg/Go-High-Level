@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,12 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.5.2 =
+* Left-align the modal's name and details.
+* Drop the country line from the address.
+* No ring, plate or hover on the modal's close button — the dialog itself
+  takes focus on open.
 
 = 1.5.1 =
 * Re-derive names already in the cache on upgrade, so capitalization applies

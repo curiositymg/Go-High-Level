@@ -46,6 +46,7 @@ $ghld_scope = $data['scope'];
 			<div class="ghld-modal-backdrop" data-ghld-modal-close></div>
 			<div
 				class="ghld-modal-dialog"
+				tabindex="-1"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="<?php echo esc_attr( $data['dom_id'] ); ?>-modal-title"

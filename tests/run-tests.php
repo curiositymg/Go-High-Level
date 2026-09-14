@@ -455,6 +455,10 @@ $roster = array(
 		'email'        => 'rosalind@example.com',
 		'phone'        => '+1 555-0142',
 		'address1'     => '12 Clinic Way',
+		'city'         => 'Chipley',
+		'state'        => 'Florida',
+		'postalCode'   => '32428',
+		'country'      => 'US',
 		'tags'         => array( 'Member - Physician', 'Cardiology' ),
 		'customFields' => array(
 			array(
@@ -613,7 +617,12 @@ $detail = GHLD_Template::get(
 	)
 );
 ghld_ok( false !== strpos( $detail, 'Cardiology' ), 'the modal lists the contact tags' );
-ghld_ok( false !== strpos( $detail, '12 Clinic Way' ), 'the modal carries the full address' );
+preg_match( '#<p class="ghld-detail-address">(.*?)</p>#s', $detail, $ghld_address );
+$ghld_address = isset( $ghld_address[1] ) ? $ghld_address[1] : '';
+
+ghld_ok( false !== strpos( $ghld_address, '12 Clinic Way' ), 'the modal carries the street address' );
+ghld_ok( false !== strpos( $ghld_address, 'Chipley, Florida 32428' ), 'city, state and ZIP share the next line' );
+ghld_ok( false === strpos( $ghld_address, 'US' ), 'the country is not printed in the address block' );
 ghld_ok( false !== strpos( $detail, 'tel:+15550142' ), 'the modal links the phone number' );
 ghld_ok( false !== strpos( $detail, '<span class="ghld-tel-label">P.</span>' ), 'the phone number is prefixed with P.' );
 ghld_ok( false === strpos( $detail, 'rosalind@example.com' ), 'the modal withholds an email address that was not ticked' );

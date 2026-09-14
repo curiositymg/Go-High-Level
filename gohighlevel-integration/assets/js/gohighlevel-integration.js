@@ -228,7 +228,6 @@
 		var dialog = modal.querySelector( '.ghld-modal-dialog' );
 		var title = modal.querySelector( '[data-ghld-modal-title], .ghld-modal-title' );
 		var body = modal.querySelector( '[data-ghld-modal-body]' );
-		var closeButton = modal.querySelector( '.ghld-modal-close' );
 		var lastTrigger = null;
 
 		/**
@@ -255,7 +254,10 @@
 
 			modal.hidden = false;
 			document.documentElement.classList.add( 'ghld-modal-open' );
-			closeButton.focus();
+
+			// Focus the dialog rather than the close button: the dialog is
+			// announced on open, and no control picks up a theme focus ring.
+			dialog.focus();
 		}
 
 		/**

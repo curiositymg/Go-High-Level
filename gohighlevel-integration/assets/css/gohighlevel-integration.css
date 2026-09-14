@@ -398,24 +398,31 @@
 	cursor: pointer;
 }
 
-/* No plate behind the glyph — themes give buttons a background of their own, so
-   this is stated at a specificity they can't outrank. Focus is shown with an
-   outline instead, which keeps the control visible to keyboard users. */
+/* The close button is the bare glyph in every state — no plate, no hover, no
+   focus ring. Stated at a specificity themes can't outrank. Escape also closes
+   the dialog, so keyboard users are not left without a way out. */
 .ghld-directory button.ghld-modal-close,
 .ghld-directory button.ghld-modal-close:hover,
-.ghld-directory button.ghld-modal-close:focus {
+.ghld-directory button.ghld-modal-close:focus,
+.ghld-directory button.ghld-modal-close:focus-visible,
+.ghld-directory button.ghld-modal-close:active {
+	width: 2.25rem;
+	min-width: 0;
+	height: 2.25rem;
+	padding: 0;
 	background: none;
 	box-shadow: none;
 	border: 0;
+	outline: 0;
+	opacity: 1;
+	transform: none;
+	line-height: 1;
 }
 
-.ghld-modal-close:hover {
-	opacity: 0.6;
-}
-
-.ghld-modal-close:focus-visible {
-	outline: 2px solid currentColor;
-	outline-offset: 2px;
+/* The dialog takes focus on open so no control shows a ring. */
+.ghld-directory .ghld-modal-dialog:focus,
+.ghld-directory .ghld-modal-dialog:focus-visible {
+	outline: none;
 }
 
 .ghld-modal-title {
@@ -558,4 +565,25 @@
 .ghld-detail-specialty {
 	margin: -0.5rem 0 1rem;
 	font-size: 1.05rem;
+}
+
+
+/* Modal alignment ---------------------------------------------------------- */
+
+/* Themes frequently centre headings and dialog content; a person's name and
+   their address both read as a left-aligned block. */
+.ghld-directory .ghld-modal-dialog,
+.ghld-directory .ghld-modal-title,
+.ghld-directory .ghld-detail,
+.ghld-directory .ghld-detail-body,
+.ghld-directory .ghld-detail-practice,
+.ghld-directory .ghld-detail-practice p,
+.ghld-directory .ghld-detail-specialty,
+.ghld-directory .ghld-detail-title,
+.ghld-directory .ghld-detail-company,
+.ghld-directory .ghld-detail-address,
+.ghld-directory .ghld-detail-bio,
+.ghld-directory .ghld-detail-rows,
+.ghld-directory .ghld-detail-row {
+	text-align: left;
 }

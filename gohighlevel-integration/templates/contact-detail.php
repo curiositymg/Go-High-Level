@@ -76,10 +76,6 @@ $ghld_place = array_filter(
 			if ( ( $ghld_showing( 'address' ) || $ghld_showing( 'location' ) ) && ! empty( $ghld_place ) ) {
 				$ghld_lines[] = implode( ', ', $ghld_place );
 			}
-			if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['country'] ) {
-				$ghld_lines[] = $ghld_contact['country'];
-			}
-
 			if ( ! empty( $ghld_lines ) ) {
 				printf(
 					'<p class="ghld-detail-address">%s</p>',
