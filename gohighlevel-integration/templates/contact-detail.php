@@ -69,7 +69,7 @@ $ghld_place = array_filter(
 	<?php endif; ?>
 
 	<div class="ghld-detail-body">
-		<?php if ( $ghld_showing( 'title' ) && '' !== $ghld_contact['title'] ) : ?>
+		<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>
 			<p class="ghld-detail-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
 		<?php endif; ?>
 

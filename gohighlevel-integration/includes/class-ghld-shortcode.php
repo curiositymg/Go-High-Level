@@ -182,6 +182,7 @@ class GHLD_Shortcode {
 				'exclude_tags' => $settings['exclude_tags'],
 				'filters'      => implode( ',', (array) $settings['filters'] ),
 				'show'         => implode( ',', (array) $settings['show'] ),
+				'name_format'  => $settings['name_format'],
 				'modal'        => $settings['modal'] ? 'yes' : 'no',
 				'modal_show'   => implode( ',', (array) $settings['modal_show'] ),
 				'orderby'      => $settings['orderby'],
@@ -210,6 +211,7 @@ class GHLD_Shortcode {
 			),
 			'filters'      => array_values( array_intersect( $filters, self::allowed_filters() ) ),
 			'show'         => array_values( array_intersect( GHLD_Settings::to_list( $atts['show'] ), self::allowed_show() ) ),
+			'name_format'  => GHLD_Settings::sanitize_choice( $atts['name_format'], GHLD_Settings::name_format_choices(), 'name_title' ),
 			'modal'        => self::is_truthy( $atts['modal'] ),
 			'modal_show'   => array_values( array_intersect( GHLD_Settings::to_list( $atts['modal_show'] ), self::allowed_show() ) ),
 			'columns'      => min( 6, max( 1, (int) $atts['columns'] ) ),
@@ -263,6 +265,43 @@ class GHLD_Shortcode {
 		}
 
 		return $base;
+	}
+
+	/**
+	 * The title to print on the name line, if any.
+	 *
+	 * Empty unless the directory is set to "Name, Title", the contact actually
+	 * has a title, and the title is switched on for the card — so unmapping the
+	 * title field or unticking it removes the suffix along with everything else.
+	 *
+	 * @param array $contact Normalized contact.
+	 * @param array $scope   Resolved scope.
+	 * @return string
+	 */
+	public static function inline_title( array $contact, array $scope ) {
+		$format = isset( $scope['name_format'] ) ? $scope['name_format'] : 'name';
+		$show   = isset( $scope['show'] ) ? (array) $scope['show'] : array();
+		$title  = isset( $contact['title'] ) ? trim( (string) $contact['title'] ) : '';
+
+		if ( 'name_title' !== $format || '' === $title || ! in_array( 'title', $show, true ) ) {
+			return '';
+		}
+
+		return $title;
+	}
+
+	/**
+	 * The full name line as one string, for the dialog heading.
+	 *
+	 * @param array $contact Normalized contact.
+	 * @param array $scope   Resolved scope.
+	 * @return string
+	 */
+	public static function display_name( array $contact, array $scope ) {
+		$name  = isset( $contact['name'] ) ? (string) $contact['name'] : '';
+		$title = self::inline_title( $contact, $scope );
+
+		return ( '' === $title ) ? $name : $name . ', ' . $title;
 	}
 
 	/**

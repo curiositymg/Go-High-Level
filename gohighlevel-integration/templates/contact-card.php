@@ -14,6 +14,11 @@ $ghld_contact = $data['contact'];
 $ghld_show    = (array) $data['scope']['show'];
 $ghld_modal   = ! empty( $data['scope']['modal'] );
 
+// When the directory prints "Name, Title", the title rides on the name line
+// instead of taking a line of its own.
+$ghld_inline_title = GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] );
+$ghld_display_name = GHLD_Shortcode::display_name( $ghld_contact, $data['scope'] );
+
 /**
  * Whether a card element is enabled.
  *
@@ -27,7 +32,7 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 <article
 	class="ghld-card<?php echo $ghld_modal ? ' ghld-card-clickable' : ''; ?>"
 	data-ghld-contact="<?php echo esc_attr( $ghld_contact['id'] ); ?>"
-	data-ghld-name="<?php echo esc_attr( $ghld_contact['name'] ); ?>"
+	data-ghld-name="<?php echo esc_attr( $ghld_display_name ); ?>"
 >
 	<?php if ( $ghld_showing( 'photo' ) ) : ?>
 		<div class="ghld-card-media">
@@ -51,14 +56,22 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 		<h3 class="ghld-name">
 			<?php if ( $ghld_modal ) : ?>
 				<button type="button" class="ghld-name-button" data-ghld-open>
-					<?php echo esc_html( $ghld_contact['name'] ); ?>
+					<?php echo esc_html( $ghld_contact['name'] ); ?><?php
+					if ( '' !== $ghld_inline_title ) :
+						?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
+					endif;
+					?>
 				</button>
 			<?php else : ?>
-				<?php echo esc_html( $ghld_contact['name'] ); ?>
+				<?php echo esc_html( $ghld_contact['name'] ); ?><?php
+				if ( '' !== $ghld_inline_title ) :
+					?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
+				endif;
+				?>
 			<?php endif; ?>
 		</h3>
 
-		<?php if ( $ghld_showing( 'title' ) && '' !== $ghld_contact['title'] ) : ?>
+		<?php if ( $ghld_showing( 'title' ) && '' === $ghld_inline_title && '' !== $ghld_contact['title'] ) : ?>
 			<p class="ghld-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
 		<?php endif; ?>
 

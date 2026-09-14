@@ -295,6 +295,17 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-name-format"><?php esc_html_e( 'Name line', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-name-format" name="<?php echo esc_attr( $name ); ?>[name_format]">
+								<?php foreach ( GHLD_Settings::name_format_choices() as $ghld_value => $ghld_label ) : ?>
+									<option value="<?php echo esc_attr( $ghld_value ); ?>" <?php selected( $settings['name_format'], $ghld_value ); ?>><?php echo esc_html( $ghld_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'The title comes from whichever field is mapped as "Job title" above — map it to the custom field holding the credential (MD, DO, NP) or the specialty. With nothing mapped, only the name is printed.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Detail modal', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>
@@ -438,6 +449,7 @@ class GHLD_Admin {
 			<li><code>filters</code> — <?php esc_html_e( 'which controls appear in the filter bar: search, tag, city, state, company, sort, or cf:your_field_key. Use filters="none" to hide the bar.', 'gohighlevel-integration' ); ?></li>
 			<li><code>show</code> — <?php esc_html_e( 'card contents: photo, title, company, location, tags, email, phone, website, bio, or cf:your_field_key.', 'gohighlevel-integration' ); ?></li>
 			<li><code>layout</code> — <?php esc_html_e( 'grid (default) or list.', 'gohighlevel-integration' ); ?></li>
+			<li><code>name_format</code> — <?php esc_html_e( 'name_title (default) prints "Name, Title"; name puts the title on its own line.', 'gohighlevel-integration' ); ?></li>
 			<li><code>modal</code> / <code>modal_show</code> — <?php esc_html_e( 'modal="no" makes cards non-clickable; modal_show takes the same element names as show.', 'gohighlevel-integration' ); ?></li>
 		</ul>
 		<?php

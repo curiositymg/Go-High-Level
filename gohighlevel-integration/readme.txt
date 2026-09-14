@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.3.0 =
+* Print the name line as "Name, Title" (e.g. "Emily Billingsley, MD"), with the
+  title styled as secondary to the name. Set the Name line option back to
+  "Name only" to keep the title on its own line.
 
 = 1.2.0 =
 * Capitalize names that arrive all-lowercase from GoHighLevel, leaving

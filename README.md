@@ -81,6 +81,7 @@ never appears in a database dump or in the settings form.
 | `per_page` | 24 | Contacts per page (1–200). |
 | `orderby` / `order` | `first_name` / `asc` | `first_name` (the name as printed), `name` (surname), `company` or `date_added`; `asc` or `desc`. |
 | `layout` | `grid` | `grid` or `list`. |
+| `name_format` | `name_title` | `name_title` prints "Emily Billingsley, MD"; `name` puts the title on its own line. |
 | `modal` | `yes` | `no` makes cards non-clickable and ships no detail markup. |
 | `modal_show` | setting | What the detail modal lists — same element names as `show`. |
 | `search` | — | A search term always applied to this directory, on top of whatever a visitor types. |
@@ -117,6 +118,9 @@ lists the discovered fields by name after the first sync.
   a contact costs no request, survives the grid being swapped out by a filter,
   and can never reach a contact outside the directory's scope. Without
   JavaScript the cards are simply not clickable; nothing else changes.
+- **The name line.** By default the card reads "Name, Title" — the title being
+  whatever field is mapped as *Job title*, with nothing printed when that field
+  is unmapped or empty for a contact.
 - **Names.** GoHighLevel records are often imported all-lowercase, and its own
   `fullNameLowerCase` field is lowercase by definition. Names with no capital at
   all are title-cased for display; any name that already carries one is printed
@@ -160,7 +164,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 103 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 117 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

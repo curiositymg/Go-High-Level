@@ -653,6 +653,77 @@ ghld_same( false, GHLD_Shortcode::is_truthy( 'no' ), 'modal="no" disables it' );
 ghld_same( false, GHLD_Shortcode::build_scope( array( 'modal' => 'no' ) )['modal'], 'the shortcode attribute reaches the scope' );
 
 /* -------------------------------------------------------------------------
+ * "Name, Title" on the name line
+ * ---------------------------------------------------------------------- */
+
+$titled = GHLD_Contact::normalize(
+	array(
+		'id'           => 't1',
+		'firstName'    => 'emily',
+		'lastName'     => 'billingsley',
+		'tags'         => array( 'member - physician' ),
+		'customFields' => array(
+			array(
+				'id'    => 'fld_cred',
+				'value' => 'MD',
+			),
+		),
+	),
+	array(
+		'fld_cred' => array(
+			'key'  => 'credential',
+			'name' => 'Credential',
+			'type' => 'TEXT',
+		),
+	),
+	array_merge( $defaults, array( 'title_field' => 'cf:credential' ) )
+);
+
+ghld_same( 'Emily Billingsley', $titled['name'], 'the mapped title leaves the name itself alone' );
+ghld_same( 'MD', $titled['title'], 'the credential comes from the mapped title field' );
+
+ghld_same( 'name_title', GHLD_Shortcode::build_scope( array() )['name_format'], 'the name line defaults to "Name, Title"' );
+ghld_same( 'name', GHLD_Shortcode::build_scope( array( 'name_format' => 'name' ) )['name_format'], 'the shortcode can put the title back on its own line' );
+ghld_same( 'name_title', GHLD_Shortcode::build_scope( array( 'name_format' => 'bogus' ) )['name_format'], 'an unknown name format falls back to the default' );
+
+ghld_same( 'Emily Billingsley, MD', GHLD_Shortcode::display_name( $titled, $default_scope ), 'the name line reads "Name, Title"' );
+ghld_same( 'Jonas Salk', GHLD_Shortcode::display_name( $salk, $default_scope ), 'a contact with no title gets no trailing comma' );
+
+$titled_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $titled,
+		'scope'   => $default_scope,
+	)
+);
+ghld_ok( false !== strpos( $titled_card, '<span class="ghld-name-title">, MD</span>' ), 'the title is printed on the name line' );
+ghld_ok( false !== strpos( $titled_card, 'data-ghld-name="Emily Billingsley, MD"' ), 'the dialog heading carries the title too' );
+ghld_ok( false === strpos( $titled_card, '<p class="ghld-title">' ), 'the title does not also take a line of its own' );
+
+$stacked      = array_merge( $default_scope, array( 'name_format' => 'name' ) );
+$stacked_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $titled,
+		'scope'   => $stacked,
+	)
+);
+ghld_ok( false === strpos( $stacked_card, 'ghld-name-title' ), 'name_format="name" keeps the name line bare' );
+ghld_ok( false !== strpos( $stacked_card, '<p class="ghld-title">MD</p>' ), 'name_format="name" puts the title back on its own line' );
+
+$hidden_title = array_merge( $default_scope, array( 'show' => array( 'photo', 'company' ) ) );
+ghld_same( '', GHLD_Shortcode::inline_title( $titled, $hidden_title ), 'unticking the title removes it from the name line as well' );
+
+$titled_detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $titled,
+		'scope'   => $default_scope,
+	)
+);
+ghld_ok( false === strpos( $titled_detail, 'ghld-detail-title' ), 'the modal body does not repeat the title its heading already carries' );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

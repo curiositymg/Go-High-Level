@@ -37,6 +37,7 @@ class GHLD_Settings {
 			'extra_fields'  => array(),
 			'filters'       => array( 'search', 'tag' ),
 			'show'          => array( 'photo', 'title', 'company', 'location', 'tags' ),
+			'name_format'   => 'name_title',
 			'modal'         => 1,
 			'modal_show'    => array( 'photo', 'title', 'company', 'location', 'address', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
@@ -202,6 +203,7 @@ class GHLD_Settings {
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
+		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );
 		$clean['columns']       = isset( $input['columns'] ) ? min( 6, max( 1, (int) $input['columns'] ) ) : 3;
 		$clean['per_page']      = isset( $input['per_page'] ) ? min( 200, max( 1, (int) $input['per_page'] ) ) : 24;
 		$clean['orderby']       = self::sanitize_choice( isset( $input['orderby'] ) ? $input['orderby'] : '', self::orderby_choices(), 'name' );
@@ -220,6 +222,18 @@ class GHLD_Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * How the name line is composed.
+	 *
+	 * @return array
+	 */
+	public static function name_format_choices() {
+		return array(
+			'name_title' => __( 'Name, Title — e.g. "Emily Billingsley, MD"', 'gohighlevel-integration' ),
+			'name'       => __( 'Name only, with the title on its own line', 'gohighlevel-integration' ),
+		);
 	}
 
 	/**

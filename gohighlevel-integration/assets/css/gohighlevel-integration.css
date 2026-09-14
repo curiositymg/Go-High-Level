@@ -478,3 +478,13 @@
 		transform: none;
 	}
 }
+
+/* "Name, Title" ----------------------------------------------------------- */
+
+/* The credential sits on the name line but reads as secondary to it, so a card
+   still scans as a list of names. */
+.ghld-name-title {
+	font-weight: 400;
+	color: var(--ghld-muted);
+	white-space: nowrap;
+}
