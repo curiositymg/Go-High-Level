@@ -79,8 +79,10 @@ never appears in a database dump or in the settings form.
 | `show` | setting | Card contents: `photo`, `title`, `company`, `location`, `tags`, `bio`, `email`, `phone`, `website`, `cf:<field_key>`. |
 | `columns` | 3 | Grid columns on wide screens (1–6); narrower screens auto-fit. |
 | `per_page` | 24 | Contacts per page (1–200). |
-| `orderby` / `order` | `name` / `asc` | `name`, `company` or `date_added`; `asc` or `desc`. |
+| `orderby` / `order` | `first_name` / `asc` | `first_name` (the name as printed), `name` (surname), `company` or `date_added`; `asc` or `desc`. |
 | `layout` | `grid` | `grid` or `list`. |
+| `modal` | `yes` | `no` makes cards non-clickable and ships no detail markup. |
+| `modal_show` | setting | What the detail modal lists — same element names as `show`. |
 | `search` | — | A search term always applied to this directory, on top of whatever a visitor types. |
 | `empty` | — | Message shown when nothing matches. |
 
@@ -110,6 +112,15 @@ lists the discovered fields by name after the first sync.
 - **Re-mapping is free.** Changing which field holds the photo/title/bio
   re-derives those values from the cached contacts; only credential changes force
   a re-fetch.
+- **Detail modal.** Each card carries its own detail panel, rendered server-side
+  by `templates/contact-detail.php` and hidden until the card is clicked. Opening
+  a contact costs no request, survives the grid being swapped out by a filter,
+  and can never reach a contact outside the directory's scope. Without
+  JavaScript the cards are simply not clickable; nothing else changes.
+- **Names.** GoHighLevel records are often imported all-lowercase, and its own
+  `fullNameLowerCase` field is lowercase by definition. Names with no capital at
+  all are title-cased for display; any name that already carries one is printed
+  exactly as stored.
 
 ## Privacy
 
@@ -149,7 +160,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 73 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 103 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

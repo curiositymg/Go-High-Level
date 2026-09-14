@@ -40,4 +40,25 @@ $ghld_scope = $data['scope'];
 	<div class="ghld-pagination-wrap" data-ghld-pagination>
 		<?php echo $data['pagination']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in pagination.php. ?>
 	</div>
+
+	<?php if ( ! empty( $ghld_scope['modal'] ) ) : ?>
+		<div class="ghld-modal" data-ghld-modal hidden>
+			<div class="ghld-modal-backdrop" data-ghld-modal-close></div>
+			<div
+				class="ghld-modal-dialog"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="<?php echo esc_attr( $data['dom_id'] ); ?>-modal-title"
+			>
+				<button
+					type="button"
+					class="ghld-modal-close"
+					data-ghld-modal-close
+					aria-label="<?php esc_attr_e( 'Close', 'gohighlevel-integration' ); ?>"
+				>&times;</button>
+				<h2 class="ghld-modal-title" id="<?php echo esc_attr( $data['dom_id'] ); ?>-modal-title"></h2>
+				<div class="ghld-modal-body" data-ghld-modal-body></div>
+			</div>
+		</div>
+	<?php endif; ?>
 </div>

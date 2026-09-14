@@ -205,6 +205,133 @@
 			event.preventDefault();
 			load( parseInt( link.getAttribute( 'data-ghld-page' ), 10 ) || 1, true );
 		} );
+
+		initModal( root );
+	}
+
+	/**
+	 * Card -> detail modal.
+	 *
+	 * The detail markup is already in each card (hidden), rendered by the same
+	 * templates as everything else, so opening a contact costs no request and
+	 * survives the results being swapped out by a filter.
+	 *
+	 * @param {HTMLElement} root Directory wrapper.
+	 */
+	function initModal( root ) {
+		var modal = root.querySelector( '[data-ghld-modal]' );
+
+		if ( ! modal ) {
+			return;
+		}
+
+		var dialog = modal.querySelector( '.ghld-modal-dialog' );
+		var title = modal.querySelector( '[data-ghld-modal-title], .ghld-modal-title' );
+		var body = modal.querySelector( '[data-ghld-modal-body]' );
+		var closeButton = modal.querySelector( '.ghld-modal-close' );
+		var lastTrigger = null;
+
+		/**
+		 * Open the modal for one card.
+		 *
+		 * @param {HTMLElement} card    The card element.
+		 * @param {HTMLElement} trigger Element focus returns to on close.
+		 */
+		function open( card, trigger ) {
+			var detail = card.querySelector( '[data-ghld-detail]' );
+
+			if ( ! detail ) {
+				return;
+			}
+
+			lastTrigger = trigger || card;
+			title.textContent = card.getAttribute( 'data-ghld-name' ) || '';
+			body.innerHTML = detail.innerHTML;
+
+			// The clone is inside the dialog now, so it must not stay hidden.
+			Array.prototype.forEach.call( body.querySelectorAll( '[hidden]' ), function ( node ) {
+				node.hidden = false;
+			} );
+
+			modal.hidden = false;
+			document.documentElement.classList.add( 'ghld-modal-open' );
+			closeButton.focus();
+		}
+
+		/**
+		 * Close the modal and hand focus back.
+		 */
+		function close() {
+			modal.hidden = true;
+			body.innerHTML = '';
+			document.documentElement.classList.remove( 'ghld-modal-open' );
+
+			if ( lastTrigger && document.contains( lastTrigger ) ) {
+				lastTrigger.focus();
+			}
+			lastTrigger = null;
+		}
+
+		root.addEventListener( 'click', function ( event ) {
+			if ( event.target.closest( '[data-ghld-modal-close]' ) ) {
+				event.preventDefault();
+				close();
+
+				return;
+			}
+
+			// Anything already interactive keeps its own behaviour: mailto and
+			// tel links, the website link, pagination.
+			if ( event.target.closest( 'a' ) || event.target.closest( '[data-ghld-modal]' ) ) {
+				return;
+			}
+
+			var card = event.target.closest( '.ghld-card-clickable' );
+
+			if ( ! card ) {
+				return;
+			}
+
+			event.preventDefault();
+			open( card, event.target.closest( '[data-ghld-open]' ) || card.querySelector( '[data-ghld-open]' ) );
+		} );
+
+		document.addEventListener( 'keydown', function ( event ) {
+			if ( modal.hidden ) {
+				return;
+			}
+
+			if ( 'Escape' === event.key ) {
+				event.preventDefault();
+				close();
+
+				return;
+			}
+
+			if ( 'Tab' !== event.key ) {
+				return;
+			}
+
+			// Keep focus inside the dialog while it is open.
+			var focusable = dialog.querySelectorAll(
+				'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			);
+
+			if ( ! focusable.length ) {
+				return;
+			}
+
+			var first = focusable[ 0 ];
+			var last = focusable[ focusable.length - 1 ];
+
+			if ( event.shiftKey && document.activeElement === first ) {
+				event.preventDefault();
+				last.focus();
+			} else if ( ! event.shiftKey && document.activeElement === last ) {
+				event.preventDefault();
+				first.focus();
+			}
+		} );
 	}
 
 	/**

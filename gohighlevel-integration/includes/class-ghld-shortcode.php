@@ -182,6 +182,8 @@ class GHLD_Shortcode {
 				'exclude_tags' => $settings['exclude_tags'],
 				'filters'      => implode( ',', (array) $settings['filters'] ),
 				'show'         => implode( ',', (array) $settings['show'] ),
+				'modal'        => $settings['modal'] ? 'yes' : 'no',
+				'modal_show'   => implode( ',', (array) $settings['modal_show'] ),
 				'orderby'      => $settings['orderby'],
 				'order'        => $settings['order'],
 				'layout'       => 'grid',
@@ -208,6 +210,8 @@ class GHLD_Shortcode {
 			),
 			'filters'      => array_values( array_intersect( $filters, self::allowed_filters() ) ),
 			'show'         => array_values( array_intersect( GHLD_Settings::to_list( $atts['show'] ), self::allowed_show() ) ),
+			'modal'        => self::is_truthy( $atts['modal'] ),
+			'modal_show'   => array_values( array_intersect( GHLD_Settings::to_list( $atts['modal_show'] ), self::allowed_show() ) ),
 			'columns'      => min( 6, max( 1, (int) $atts['columns'] ) ),
 			'per_page'     => min( 200, max( 1, (int) $atts['per_page'] ) ),
 			'orderby'      => GHLD_Settings::sanitize_choice( $atts['orderby'], GHLD_Settings::orderby_choices(), 'name' ),
@@ -252,13 +256,27 @@ class GHLD_Shortcode {
 	 * @return string[]
 	 */
 	public static function allowed_show() {
-		$base = array( 'photo', 'title', 'company', 'location', 'tags', 'email', 'phone', 'website', 'bio' );
+		$base = array( 'photo', 'title', 'company', 'location', 'address', 'tags', 'email', 'phone', 'website', 'bio' );
 
 		foreach ( GHLD_Repository::custom_fields() as $field ) {
 			$base[] = 'cf:' . $field['key'];
 		}
 
 		return $base;
+	}
+
+	/**
+	 * Read a yes/no shortcode attribute.
+	 *
+	 * @param mixed $value Attribute value.
+	 * @return bool
+	 */
+	public static function is_truthy( $value ) {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		return in_array( strtolower( trim( (string) $value ) ), array( '1', 'yes', 'true', 'on' ), true );
 	}
 
 	/**

@@ -37,10 +37,12 @@ class GHLD_Settings {
 			'extra_fields'  => array(),
 			'filters'       => array( 'search', 'tag' ),
 			'show'          => array( 'photo', 'title', 'company', 'location', 'tags' ),
+			'modal'         => 1,
+			'modal_show'    => array( 'photo', 'title', 'company', 'location', 'address', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
 			'columns'       => 3,
 			'per_page'      => 24,
-			'orderby'       => 'name',
+			'orderby'       => 'first_name',
 			'order'         => 'asc',
 		);
 	}
@@ -199,6 +201,7 @@ class GHLD_Settings {
 		$clean['title_field']   = isset( $input['title_field'] ) ? sanitize_text_field( $input['title_field'] ) : '';
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
+		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
 		$clean['columns']       = isset( $input['columns'] ) ? min( 6, max( 1, (int) $input['columns'] ) ) : 3;
 		$clean['per_page']      = isset( $input['per_page'] ) ? min( 200, max( 1, (int) $input['per_page'] ) ) : 24;
 		$clean['orderby']       = self::sanitize_choice( isset( $input['orderby'] ) ? $input['orderby'] : '', self::orderby_choices(), 'name' );
@@ -207,6 +210,7 @@ class GHLD_Settings {
 		$clean['extra_fields'] = array_map( 'sanitize_text_field', isset( $input['extra_fields'] ) && is_array( $input['extra_fields'] ) ? $input['extra_fields'] : array() );
 		$clean['filters']      = array_map( 'sanitize_text_field', isset( $input['filters'] ) && is_array( $input['filters'] ) ? $input['filters'] : array() );
 		$clean['show']         = array_map( 'sanitize_text_field', isset( $input['show'] ) && is_array( $input['show'] ) ? $input['show'] : array() );
+		$clean['modal_show']   = array_map( 'sanitize_text_field', isset( $input['modal_show'] ) && is_array( $input['modal_show'] ) ? $input['modal_show'] : array() );
 
 		// Any change to credentials or tag scope invalidates what is cached.
 		if ( $clean['api_version'] !== $current['api_version']
@@ -225,7 +229,11 @@ class GHLD_Settings {
 	 */
 	public static function orderby_choices() {
 		return array(
-			'name'       => __( 'Name', 'gohighlevel-integration' ),
+			// `first_name` sorts on the name as it is printed on the card, which
+			// is what reads as "alphabetical" to someone scanning the page;
+			// `name` sorts on surname, the convention for a clinical directory.
+			'first_name' => __( 'First name', 'gohighlevel-integration' ),
+			'name'       => __( 'Last name', 'gohighlevel-integration' ),
 			'company'    => __( 'Company', 'gohighlevel-integration' ),
 			'date_added' => __( 'Date added', 'gohighlevel-integration' ),
 		);

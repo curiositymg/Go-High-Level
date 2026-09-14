@@ -30,7 +30,9 @@ class GHLD_Contact {
 		$name  = trim( $first . ' ' . $last );
 
 		if ( '' === $name ) {
-			foreach ( array( 'contactName', 'fullNameLowerCase', 'name' ) as $key ) {
+			// `fullNameLowerCase` is GoHighLevel's own lowercased copy of the
+			// name, so it comes last — it is a fallback, not a display value.
+			foreach ( array( 'contactName', 'name', 'fullNameLowerCase' ) as $key ) {
 				$candidate = self::str( $raw, $key );
 				if ( '' !== $candidate ) {
 					$name = $candidate;
@@ -38,6 +40,10 @@ class GHLD_Contact {
 				}
 			}
 		}
+
+		$first = self::capitalize_name( $first );
+		$last  = self::capitalize_name( $last );
+		$name  = self::capitalize_name( $name );
 
 		$custom = self::custom_values( $raw, $field_map );
 		$email  = sanitize_email( self::str( $raw, 'email' ) );
@@ -81,6 +87,49 @@ class GHLD_Contact {
 		 * @param array $raw     Raw API payload.
 		 */
 		return apply_filters( 'ghld_normalize_contact', $contact, $raw );
+	}
+
+	/**
+	 * Title-case a name that arrived without any capitals.
+	 *
+	 * GoHighLevel records are frequently imported all-lowercase, and its own
+	 * `fullNameLowerCase` field is lowercase by definition, which renders as
+	 * "ayman aboulela" on a card. Names that already carry a capital are left
+	 * exactly as they are, so deliberate spellings — DeShawn, McDonald,
+	 * van der Berg — are never flattened.
+	 *
+	 * @param string $name Name as it came from the API.
+	 * @return string
+	 */
+	public static function capitalize_name( $name ) {
+		$name = trim( (string) $name );
+		if ( '' === $name ) {
+			return '';
+		}
+
+		// Any existing capital means the casing was intentional.
+		if ( preg_match( '/\p{Lu}/u', $name ) ) {
+			return $name;
+		}
+
+		if ( function_exists( 'mb_convert_case' ) ) {
+			// MB_CASE_TITLE breaks on spaces, hyphens and periods, so
+			// "eshraq al-jaghbeer" and "hari k. r. baddigam" both come out right.
+			$name = mb_convert_case( $name, MB_CASE_TITLE, 'UTF-8' );
+		} else {
+			$name = ucwords( $name, " \t\r\n\f\v-'." );
+		}
+
+		// Title casing stops at an apostrophe, which leaves "O'brien". Only a
+		// single letter before the apostrophe is treated as a name prefix, so
+		// this catches O'Brien and D'Angelo without touching anything else.
+		return (string) preg_replace_callback(
+			'/\b(\p{L}\x27)(\p{Ll})/u',
+			static function ( $matches ) {
+				return $matches[1] . ( function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $matches[2], 'UTF-8' ) : strtoupper( $matches[2] ) );
+			},
+			$name
+		);
 	}
 
 	/**

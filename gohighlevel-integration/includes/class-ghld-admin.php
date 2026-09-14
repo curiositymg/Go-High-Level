@@ -295,6 +295,22 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Detail modal', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[modal]" value="1" <?php checked( ! empty( $settings['modal'] ) ); ?> />
+								<?php esc_html_e( 'Open a contact\'s full details when their card is clicked', 'gohighlevel-integration' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Show in the detail modal', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<?php self::checkbox_list( $name . '[modal_show]', self::show_choices( $fields ), (array) $settings['modal_show'] ); ?>
+							<p class="description"><?php esc_html_e( 'Separate from the card list above, so the modal can carry phone, email or a full address without printing them on every card in the grid.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Filter bar', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<?php self::checkbox_list( $name . '[filters]', self::filter_choices( $fields ), (array) $settings['filters'] ); ?>
@@ -422,6 +438,7 @@ class GHLD_Admin {
 			<li><code>filters</code> — <?php esc_html_e( 'which controls appear in the filter bar: search, tag, city, state, company, sort, or cf:your_field_key. Use filters="none" to hide the bar.', 'gohighlevel-integration' ); ?></li>
 			<li><code>show</code> — <?php esc_html_e( 'card contents: photo, title, company, location, tags, email, phone, website, bio, or cf:your_field_key.', 'gohighlevel-integration' ); ?></li>
 			<li><code>layout</code> — <?php esc_html_e( 'grid (default) or list.', 'gohighlevel-integration' ); ?></li>
+			<li><code>modal</code> / <code>modal_show</code> — <?php esc_html_e( 'modal="no" makes cards non-clickable; modal_show takes the same element names as show.', 'gohighlevel-integration' ); ?></li>
 		</ul>
 		<?php
 	}
@@ -499,6 +516,7 @@ class GHLD_Admin {
 			'title'    => __( 'Job title', 'gohighlevel-integration' ),
 			'company'  => __( 'Company', 'gohighlevel-integration' ),
 			'location' => __( 'City / state', 'gohighlevel-integration' ),
+			'address'  => __( 'Street address', 'gohighlevel-integration' ),
 			'tags'     => __( 'Tags', 'gohighlevel-integration' ),
 			'bio'      => __( 'Bio', 'gohighlevel-integration' ),
 			'email'    => __( 'Email address', 'gohighlevel-integration' ),

@@ -50,6 +50,23 @@ function ghld_same( $expected, $actual, $message ) {
 }
 
 /**
+ * Find one contact in a result set by display name.
+ *
+ * @param array  $items Result items.
+ * @param string $name  Display name.
+ * @return array|null
+ */
+function ghld_find( array $items, $name ) {
+	foreach ( $items as $item ) {
+		if ( $item['name'] === $name ) {
+			return $item;
+		}
+	}
+
+	return null;
+}
+
+/**
  * Custom field definitions used across the tests.
  *
  * @return array
@@ -274,7 +291,13 @@ $scope = array_merge( $scope, array( 'per_page' => 10 ) );
 $blank = GHLD_Shortcode::parse_request( array(), $scope );
 $all   = GHLD_Repository::query( $scope, $blank );
 ghld_same( 4, $all['total'], 'an unfiltered query returns every cached contact' );
-ghld_same( 'Katherine Johnson', $all['items'][1]['name'], 'default sort is by last name ascending' );
+ghld_same( 'Ada Lovelace', $all['items'][0]['name'], 'the default sort is alphabetical by the name as printed' );
+ghld_same( 'Alan Turing', $all['items'][1]['name'], 'the default sort keeps going by first name' );
+
+$by_surname = array_merge( $scope, array( 'orderby' => 'name' ) );
+$surnames   = GHLD_Repository::query( $by_surname, GHLD_Shortcode::parse_request( array(), $by_surname ) );
+ghld_same( 'Grace Hopper', $surnames['items'][0]['name'], 'orderby="name" still groups by surname' );
+ghld_same( 'Katherine Johnson', $surnames['items'][1]['name'], 'surname sort runs Hopper, Johnson, Lovelace, Turing' );
 
 $scoped = array_merge( $scope, array( 'tags' => array( 'directory' ) ) );
 $result = GHLD_Repository::query( $scoped, GHLD_Shortcode::parse_request( array(), $scoped ) );
@@ -304,13 +327,13 @@ $result = GHLD_Repository::query( $city_scope, GHLD_Shortcode::parse_request( ar
 ghld_same( 'US Navy', $result['items'][0]['company'], 'the sort control reorders by company descending' );
 
 $result = GHLD_Repository::query( $city_scope, GHLD_Shortcode::parse_request( array( 'ghld_sort' => 'bogus-desc' ), $city_scope ) );
-ghld_same( 'Grace Hopper', $result['items'][0]['name'], 'an unknown sort key falls back to the scope default (name, ascending)' );
+ghld_same( 'Ada Lovelace', $result['items'][0]['name'], 'an unknown sort key falls back to the scope default' );
 
 $paged = array_merge( $scope, array( 'per_page' => 2 ) );
 $page2 = GHLD_Repository::query( $paged, GHLD_Shortcode::parse_request( array( 'ghld_page' => '2' ), $paged ) );
 ghld_same( 2, $page2['pages'], 'pagination reports the page count' );
 ghld_same( 2, count( $page2['items'] ), 'a page holds per_page contacts' );
-ghld_same( 'Alan Turing', $page2['items'][1]['name'], 'page two continues the sort' );
+ghld_same( 'Katherine Johnson', $page2['items'][1]['name'], 'page two continues the sort' );
 
 $over = GHLD_Repository::query( $paged, GHLD_Shortcode::parse_request( array( 'ghld_page' => '99' ), $paged ) );
 ghld_same( 2, $over['page'], 'a page number past the end clamps to the last page' );
@@ -365,7 +388,7 @@ $xss = GHLD_Contact::normalize(
 	ghld_v2_contact(
 		array(
 			'id'        => 'x1',
-			'firstName' => '<script>alert(1)</script>',
+			'firstName' => '<script>Alert(1)</script>',
 			'lastName'  => '',
 		)
 	),
@@ -382,7 +405,7 @@ $html = GHLD_Template::get(
 	)
 );
 
-ghld_ok( false === strpos( $html, '<script>alert' ), 'contact names are escaped before output' );
+ghld_ok( false === strpos( $html, '<script>Alert' ), 'contact names are escaped before output' );
 ghld_ok( false !== strpos( $html, '&lt;script&gt;' ), 'the escaped name is still rendered' );
 ghld_ok( false !== strpos( $html, 'ghld-card' ), 'the card markup is rendered' );
 
@@ -427,8 +450,11 @@ $physician_fields = array(
 $roster = array(
 	array(
 		'id'           => 'p1',
-		'firstName'    => 'Rosalind',
-		'lastName'     => 'Franklin',
+		'firstName'    => 'rosalind',
+		'lastName'     => 'franklin',
+		'email'        => 'rosalind@example.com',
+		'phone'        => '+1 555-0142',
+		'address1'     => '12 Clinic Way',
 		'tags'         => array( 'Member - Physician', 'Cardiology' ),
 		'customFields' => array(
 			array(
@@ -439,8 +465,8 @@ $roster = array(
 	),
 	array(
 		'id'        => 'p2',
-		'firstName' => 'Jonas',
-		'lastName'  => 'Salk',
+		'firstName' => 'jonas',
+		'lastName'  => 'salk',
 		'tags'      => array( 'member - physician' ),
 	),
 	array(
@@ -474,9 +500,14 @@ ghld_same( array( 'member - physician' ), $default_scope['tags'], 'a bare shortc
 
 $physicians = GHLD_Repository::query( $default_scope, GHLD_Shortcode::parse_request( array(), $default_scope ) );
 ghld_same( 2, $physicians['total'], 'contacts without the physician tag are never listed' );
-ghld_same( 'Rosalind Franklin', $physicians['items'][0]['name'], 'the physician roster is sorted by surname' );
-ghld_same( 'https://cdn.example.com/franklin.jpg', $physicians['items'][0]['photo'], 'headshots come from the member_profile_photo field' );
-ghld_same( '', $physicians['items'][1]['photo'], 'a physician with no headshot falls back to initials' );
+ghld_same( 'Jonas Salk', $physicians['items'][0]['name'], 'lowercase records are capitalized and sorted by printed name' );
+
+$franklin = ghld_find( $physicians['items'], 'Rosalind Franklin' );
+$salk     = ghld_find( $physicians['items'], 'Jonas Salk' );
+ghld_ok( null !== $franklin, 'a lowercase first/last name is title-cased for display' );
+ghld_same( 'https://cdn.example.com/franklin.jpg', $franklin['photo'], 'headshots come from the member_profile_photo field' );
+ghld_same( '', $salk['photo'], 'a physician with no headshot falls back to initials' );
+ghld_same( 'JS', $salk['initials'], 'the initials fallback uses the capitalized name' );
 
 ghld_ok( ! isset( $physicians['facets']['tag']['Member - Physician'] ), 'the tag the whole directory is scoped to is hidden from the filter bar' );
 ghld_same( 1, $physicians['facets']['tag']['Cardiology'], 'tags that do distinguish contacts stay in the filter bar' );
@@ -484,7 +515,7 @@ ghld_same( 1, $physicians['facets']['tag']['Cardiology'], 'tags that do distingu
 $card = GHLD_Template::get(
 	'contact-card',
 	array(
-		'contact' => $physicians['items'][0],
+		'contact' => $franklin,
 		'scope'   => $default_scope,
 	)
 );
@@ -512,6 +543,114 @@ $unmapped = GHLD_Contact::normalize(
 	$defaults
 );
 ghld_same( 'https://cdn.example.com/wu.jpg', $unmapped['photo'], 'the photo still resolves from the key in the payload when field definitions are missing' );
+
+/* -------------------------------------------------------------------------
+ * Name capitalization
+ * ---------------------------------------------------------------------- */
+
+ghld_same( 'Ayman Aboulela', GHLD_Contact::capitalize_name( 'ayman aboulela' ), 'an all-lowercase name is title-cased' );
+ghld_same( 'Hari K. R. Baddigam', GHLD_Contact::capitalize_name( 'hari k. r. baddigam' ), 'initials inside a name are capitalized' );
+ghld_same( 'Eshraq Al-Jaghbeer', GHLD_Contact::capitalize_name( 'eshraq al-jaghbeer' ), 'hyphenated names capitalize both halves' );
+ghld_same( "Shaun O'Brien", GHLD_Contact::capitalize_name( "shaun o'brien" ), 'a name prefix before an apostrophe is capitalized' );
+ghld_same( 'DeShawn McDonald', GHLD_Contact::capitalize_name( 'DeShawn McDonald' ), 'deliberate internal capitals are never flattened' );
+ghld_same( 'van der Berg', GHLD_Contact::capitalize_name( 'van der Berg' ), 'a name that already carries a capital is left alone' );
+ghld_same( '', GHLD_Contact::capitalize_name( '   ' ), 'an empty name stays empty' );
+
+$lowercased = GHLD_Contact::normalize(
+	array(
+		'id'                => 'n1',
+		'fullNameLowerCase' => 'ayman aboulela',
+	),
+	array(),
+	$defaults
+);
+ghld_same( 'Ayman Aboulela', $lowercased['name'], "GoHighLevel's lowercased name field is capitalized for display" );
+
+$named = GHLD_Contact::normalize(
+	array(
+		'id'                => 'n2',
+		'contactName'       => 'Amanda Aronchick',
+		'fullNameLowerCase' => 'amanda aronchick',
+	),
+	array(),
+	$defaults
+);
+ghld_same( 'Amanda Aronchick', $named['name'], 'a properly cased name wins over the lowercased copy' );
+
+/* -------------------------------------------------------------------------
+ * Detail modal
+ * ---------------------------------------------------------------------- */
+
+$card_html = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $franklin,
+		'scope'   => $default_scope,
+	)
+);
+
+ghld_ok( false !== strpos( $card_html, 'ghld-card-clickable' ), 'cards are marked clickable when the modal is on' );
+ghld_ok( false !== strpos( $card_html, 'data-ghld-open' ), 'the name is a button, so the modal is reachable by keyboard' );
+ghld_ok( false !== strpos( $card_html, 'data-ghld-detail' ), 'each card carries its own detail panel' );
+ghld_ok( false !== strpos( $card_html, 'data-ghld-name="Rosalind Franklin"' ), 'the card names the contact for the dialog title' );
+
+$inert_scope = array_merge( $default_scope, array( 'modal' => false ) );
+$inert_html  = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $franklin,
+		'scope'   => $inert_scope,
+	)
+);
+ghld_ok( false === strpos( $inert_html, 'data-ghld-open' ), 'modal="no" leaves the card inert' );
+ghld_ok( false === strpos( $inert_html, 'data-ghld-detail' ), 'modal="no" ships no hidden detail markup' );
+
+$detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $franklin,
+		'scope'   => $default_scope,
+	)
+);
+ghld_ok( false !== strpos( $detail, 'Cardiology' ), 'the modal lists the contact tags' );
+ghld_ok( false !== strpos( $detail, '12 Clinic Way' ), 'the modal carries the full address' );
+ghld_ok( false === strpos( $detail, 'rosalind@example.com' ), 'the modal withholds an email address that was not ticked' );
+ghld_ok( false === strpos( $detail, '555-0142' ), 'the modal withholds a phone number that was not ticked' );
+
+$contactable = array_merge(
+	$default_scope,
+	array( 'modal_show' => array_merge( $default_scope['modal_show'], array( 'email', 'phone' ) ) )
+);
+$reachable   = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $franklin,
+		'scope'   => $contactable,
+	)
+);
+ghld_ok( false !== strpos( $reachable, 'mailto:rosalind@example.com' ), 'ticking Email adds a mailto link to the modal' );
+ghld_ok( false !== strpos( $reachable, 'tel:+15550142' ), 'ticking Phone adds a tel link with the number normalized' );
+
+$hostile_detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => GHLD_Contact::normalize(
+			array(
+				'id'          => 'n3',
+				'contactName' => 'Test Person',
+				'companyName' => '<img src=x onerror=alert(1)>',
+			),
+			array(),
+			$defaults
+		),
+		'scope'   => $default_scope,
+	)
+);
+ghld_ok( false === strpos( $hostile_detail, '<img src=x' ), 'modal content is escaped like everything else' );
+
+ghld_same( true, GHLD_Shortcode::is_truthy( 'yes' ), 'modal="yes" enables the modal' );
+ghld_same( false, GHLD_Shortcode::is_truthy( 'no' ), 'modal="no" disables it' );
+ghld_same( false, GHLD_Shortcode::build_scope( array( 'modal' => 'no' ) )['modal'], 'the shortcode attribute reaches the scope' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

@@ -269,6 +269,8 @@ class GHLD_Repository {
 			static function ( $a, $b ) use ( $orderby, $direction ) {
 				if ( 'date_added' === $orderby ) {
 					$result = (int) $a['date_added'] - (int) $b['date_added'];
+				} elseif ( 'first_name' === $orderby ) {
+					$result = strcmp( GHLD_Contact::lower( $a['name'] ), GHLD_Contact::lower( $b['name'] ) );
 				} elseif ( 'company' === $orderby ) {
 					$result = strcmp( GHLD_Contact::lower( $a['company'] ), GHLD_Contact::lower( $b['company'] ) );
 				} else {

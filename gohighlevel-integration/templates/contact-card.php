@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 $ghld_contact = $data['contact'];
 $ghld_show    = (array) $data['scope']['show'];
+$ghld_modal   = ! empty( $data['scope']['modal'] );
 
 /**
  * Whether a card element is enabled.
@@ -23,7 +24,11 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 	return in_array( $key, $ghld_show, true );
 };
 ?>
-<article class="ghld-card" data-ghld-contact="<?php echo esc_attr( $ghld_contact['id'] ); ?>">
+<article
+	class="ghld-card<?php echo $ghld_modal ? ' ghld-card-clickable' : ''; ?>"
+	data-ghld-contact="<?php echo esc_attr( $ghld_contact['id'] ); ?>"
+	data-ghld-name="<?php echo esc_attr( $ghld_contact['name'] ); ?>"
+>
 	<?php if ( $ghld_showing( 'photo' ) ) : ?>
 		<div class="ghld-card-media">
 			<?php if ( '' !== $ghld_contact['photo'] ) : ?>
@@ -43,7 +48,15 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 	<?php endif; ?>
 
 	<div class="ghld-card-body">
-		<h3 class="ghld-name"><?php echo esc_html( $ghld_contact['name'] ); ?></h3>
+		<h3 class="ghld-name">
+			<?php if ( $ghld_modal ) : ?>
+				<button type="button" class="ghld-name-button" data-ghld-open>
+					<?php echo esc_html( $ghld_contact['name'] ); ?>
+				</button>
+			<?php else : ?>
+				<?php echo esc_html( $ghld_contact['name'] ); ?>
+			<?php endif; ?>
+		</h3>
 
 		<?php if ( $ghld_showing( 'title' ) && '' !== $ghld_contact['title'] ) : ?>
 			<p class="ghld-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
@@ -61,6 +74,10 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 			}
 		}
 		?>
+
+		<?php if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['address'] ) : ?>
+			<p class="ghld-address"><?php echo esc_html( $ghld_contact['address'] ); ?></p>
+		<?php endif; ?>
 
 		<?php if ( $ghld_showing( 'bio' ) && '' !== $ghld_contact['bio'] ) : ?>
 			<p class="ghld-bio"><?php echo esc_html( $ghld_contact['bio'] ); ?></p>
@@ -135,4 +152,18 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 		}
 		?>
 	</div>
+
+	<?php if ( $ghld_modal ) : ?>
+		<div class="ghld-card-detail" data-ghld-detail hidden>
+			<?php
+			GHLD_Template::render(
+				'contact-detail',
+				array(
+					'contact' => $ghld_contact,
+					'scope'   => $data['scope'],
+				)
+			);
+			?>
+		</div>
+	<?php endif; ?>
 </article>

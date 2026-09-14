@@ -296,3 +296,185 @@
 		transition: none;
 	}
 }
+
+/* Names ------------------------------------------------------------------ */
+
+/* Some themes lowercase or small-caps every heading, which mangles a person's
+   name. The directory always prints names exactly as they are stored. */
+.ghld-directory .ghld-card .ghld-name,
+.ghld-directory .ghld-modal-title,
+.ghld-directory .ghld-name-button {
+	text-transform: none;
+	font-variant: normal;
+}
+
+/* Clickable cards -------------------------------------------------------- */
+
+.ghld-card-clickable {
+	cursor: pointer;
+	transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.ghld-card-clickable:hover {
+	border-color: var(--ghld-accent);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+	transform: translateY(-2px);
+}
+
+/* The name is a real button so the card is reachable by keyboard; it inherits
+   the heading's typography so it still reads as a heading. */
+.ghld-name-button {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: inherit;
+	cursor: pointer;
+}
+
+.ghld-name-button:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 3px;
+	border-radius: 3px;
+}
+
+/* Modal ------------------------------------------------------------------ */
+
+.ghld-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+}
+
+/* Beats the [hidden] { display: none } that a display rule would override. */
+.ghld-modal[hidden] {
+	display: none;
+}
+
+.ghld-modal-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.ghld-modal-dialog {
+	position: relative;
+	width: min(40rem, 100%);
+	max-height: min(85vh, 50rem);
+	overflow-y: auto;
+	padding: 1.75rem;
+	border-radius: var(--ghld-radius);
+	background: var(--ghld-surface);
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ghld-modal-close {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	width: 2.25rem;
+	height: 2.25rem;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	color: inherit;
+	font-size: 1.6rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.ghld-modal-close:hover,
+.ghld-modal-close:focus-visible {
+	background: rgba(127, 127, 127, 0.16);
+}
+
+.ghld-modal-title {
+	margin: 0 2.5rem 1rem 0;
+	font-size: 1.5rem;
+	line-height: 1.25;
+}
+
+.ghld-detail {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem;
+	align-items: flex-start;
+}
+
+.ghld-detail-media {
+	flex: 0 0 auto;
+}
+
+.ghld-detail-body {
+	flex: 1 1 15rem;
+	min-width: 0;
+}
+
+.ghld-avatar-large {
+	--ghld-avatar-size: 8.5rem;
+}
+
+.ghld-detail-title,
+.ghld-detail-company {
+	margin: 0 0 0.25rem;
+	font-size: 1rem;
+	color: var(--ghld-muted);
+}
+
+.ghld-detail-bio {
+	margin: 0.75rem 0 0;
+	line-height: 1.6;
+}
+
+.ghld-detail-rows {
+	margin: 1rem 0 0;
+}
+
+.ghld-detail-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1rem;
+	padding: 0.5rem 0;
+	border-top: 1px solid var(--ghld-border);
+}
+
+.ghld-detail-label {
+	flex: 0 0 6rem;
+	margin: 0;
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--ghld-muted);
+}
+
+.ghld-detail-value {
+	flex: 1 1 12rem;
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.ghld-detail .ghld-tags {
+	justify-content: flex-start;
+	margin-top: 1rem;
+}
+
+.ghld-modal-open {
+	overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ghld-card-clickable {
+		transition: none;
+	}
+
+	.ghld-card-clickable:hover {
+		transform: none;
+	}
+}

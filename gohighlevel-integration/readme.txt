@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ Features:
   photo, or an optional Gravatar fallback — otherwise the card shows initials.
 * Tag scoping (include/exclude) so only contacts who agreed to be listed appear
   — shipped scoped to the "member - physician" tag.
+* Click a card for a full detail modal, with its own field list.
 * Filtering works without JavaScript, and is upgraded to fetch-without-reload
   when JavaScript is available.
 * Every template can be overridden from your theme.
@@ -60,6 +61,15 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.2.0 =
+* Capitalize names that arrive all-lowercase from GoHighLevel, leaving
+  deliberate spellings (DeShawn, McDonald, van der Berg) untouched.
+* Clicking a card opens a modal with that contact's full details. What appears
+  there is controlled separately from the card, so the modal can carry a phone
+  number or address without printing it on every card in the grid.
+* Sort alphabetically by the name as printed on the card by default; surname
+  order is still available as "Last name".
 
 = 1.1.0 =
 * Ship this site's own defaults: list only contacts tagged "member - physician",
