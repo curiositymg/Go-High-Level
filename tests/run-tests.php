@@ -724,6 +724,96 @@ $titled_detail = GHLD_Template::get(
 ghld_ok( false === strpos( $titled_detail, 'ghld-detail-title' ), 'the modal body does not repeat the title its heading already carries' );
 
 /* -------------------------------------------------------------------------
+ * Primary specialty
+ * ---------------------------------------------------------------------- */
+
+ghld_same( 'cf:primary_specialty', GHLD_Settings::defaults()['specialty_field'], 'the specialty maps to the primary_specialty field by default' );
+
+$specialty_fields = array(
+	'fld_spec' => array(
+		'key'  => 'primary_specialty',
+		'name' => 'Primary Specialty',
+		'type' => 'MULTIPLE_OPTIONS',
+	),
+	'fld_cred' => array(
+		'key'  => 'credential',
+		'name' => 'Credential',
+		'type' => 'TEXT',
+	),
+);
+
+update_option( 'ghld_custom_fields', $specialty_fields );
+$specialty_settings = array_merge( $defaults, array( 'title_field' => 'cf:credential' ) );
+update_option( 'ghld_settings', $specialty_settings );
+
+$bone = GHLD_Contact::normalize(
+	array(
+		'id'           => 's1',
+		'firstName'    => 'william',
+		'lastName'     => 'bone',
+		'companyName'  => 'Panama City Infectious Disease',
+		'tags'         => array( 'member - physician' ),
+		'customFields' => array(
+			array(
+				'id'    => 'fld_cred',
+				'value' => 'MD',
+			),
+			array(
+				'id'    => 'fld_spec',
+				'value' => array( 'Infectious Disease', 'Internal Medicine' ),
+			),
+		),
+	),
+	$specialty_fields,
+	$specialty_settings
+);
+
+ghld_same( 'Infectious Disease, Internal Medicine', $bone['specialty'], 'a multi-select specialty comes through as a comma-separated list' );
+ghld_ok( false !== strpos( $bone['search_key'], 'internal medicine' ), 'specialties are searchable' );
+
+$bone_scope  = GHLD_Shortcode::build_scope( array() );
+$bone_detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $bone,
+		'scope'   => $bone_scope,
+	)
+);
+
+ghld_ok( false !== strpos( $bone_detail, '<p class="ghld-detail-specialty">Infectious Disease, Internal Medicine</p>' ), 'the modal prints the specialty as a subtitle' );
+ghld_ok( false !== strpos( $bone_detail, 'Panama City Infectious Disease' ), 'the modal prints the practice name' );
+ghld_same( 'William Bone, MD', GHLD_Shortcode::display_name( $bone, $bone_scope ), 'the heading reads "Name, Title"' );
+
+// A field with its own place on the card must not also render as a generic row.
+$doubled = array_merge(
+	$bone_scope,
+	array( 'modal_show' => array_merge( $bone_scope['modal_show'], array( 'cf:primary_specialty', 'cf:credential' ) ) )
+);
+$doubled_detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $bone,
+		'scope'   => $doubled,
+	)
+);
+ghld_same( 1, substr_count( $doubled_detail, 'Infectious Disease, Internal Medicine' ), 'a mapped field is never printed twice' );
+ghld_ok( false === strpos( $doubled_detail, 'ghld-detail-label">Primary Specialty' ), 'the mapped specialty does not also appear as a labelled row' );
+
+$no_specialty = array_merge( $bone_scope, array( 'modal_show' => array( 'photo', 'company' ) ) );
+$plain_detail = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $bone,
+		'scope'   => $no_specialty,
+	)
+);
+ghld_ok( false === strpos( $plain_detail, 'ghld-detail-specialty' ), 'unticking the specialty removes it from the modal' );
+
+// Restore the earlier fixtures for the sections that follow.
+update_option( 'ghld_custom_fields', $physician_fields );
+update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

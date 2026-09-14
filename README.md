@@ -118,6 +118,10 @@ lists the discovered fields by name after the first sync.
   a contact costs no request, survives the grid being swapped out by a filter,
   and can never reach a contact outside the directory's scope. Without
   JavaScript the cards are simply not clickable; nothing else changes.
+- **Specialty.** A mapped *Primary specialty* field prints as an italic
+  subtitle under the name in the modal. GoHighLevel multi-select values arrive
+  as a comma-separated list, so one field covers "Infectious Disease, Internal
+  Medicine".
 - **The name line.** By default the card reads "Name, Title" — the title being
   whatever field is mapped as *Job title*, with nothing printed when that field
   is unmapped or empty for a contact.
@@ -164,7 +168,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 117 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 126 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

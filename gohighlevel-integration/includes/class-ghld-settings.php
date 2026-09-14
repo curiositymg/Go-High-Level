@@ -33,13 +33,14 @@ class GHLD_Settings {
 			'exclude_tags'  => '',
 			'photo_field'   => 'cf:member_profile_photo',
 			'title_field'   => '',
+			'specialty_field' => 'cf:primary_specialty',
 			'bio_field'     => '',
 			'extra_fields'  => array(),
 			'filters'       => array( 'search', 'tag' ),
 			'show'          => array( 'photo', 'title', 'company', 'location', 'tags' ),
 			'name_format'   => 'name_title',
 			'modal'         => 1,
-			'modal_show'    => array( 'photo', 'title', 'company', 'location', 'address', 'tags', 'bio' ),
+			'modal_show'    => array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
 			'columns'       => 3,
 			'per_page'      => 24,
@@ -200,6 +201,7 @@ class GHLD_Settings {
 		$clean['exclude_tags']  = isset( $input['exclude_tags'] ) ? sanitize_text_field( $input['exclude_tags'] ) : '';
 		$clean['photo_field']   = isset( $input['photo_field'] ) ? sanitize_text_field( $input['photo_field'] ) : '';
 		$clean['title_field']   = isset( $input['title_field'] ) ? sanitize_text_field( $input['title_field'] ) : '';
+		$clean['specialty_field'] = isset( $input['specialty_field'] ) ? sanitize_text_field( $input['specialty_field'] ) : '';
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;

@@ -273,7 +273,8 @@ class GHLD_Contact {
 	public static function apply_mapping( array $contact, array $settings ) {
 		$custom = isset( $contact['custom'] ) && is_array( $contact['custom'] ) ? $contact['custom'] : array();
 
-		$contact['title'] = self::mapped_value( $settings, 'title_field', $custom, $contact );
+		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
+		$contact['specialty'] = self::mapped_value( $settings, 'specialty_field', $custom, $contact );
 		$contact['bio']   = self::mapped_value( $settings, 'bio_field', $custom, $contact );
 		$contact['photo'] = self::photo( $contact, $settings );
 
@@ -290,7 +291,7 @@ class GHLD_Contact {
 	 */
 	public static function mapping_hash( array $settings ) {
 		$relevant = array();
-		foreach ( array( 'photo_field', 'title_field', 'bio_field', 'use_gravatar' ) as $key ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
 
@@ -403,6 +404,7 @@ class GHLD_Contact {
 			$contact['name'],
 			$contact['company'],
 			$contact['title'],
+			$contact['specialty'],
 			$contact['bio'],
 			$contact['city'],
 			$contact['state'],

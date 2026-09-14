@@ -265,6 +265,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-specialty"><?php esc_html_e( 'Primary specialty', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-specialty" name="<?php echo esc_attr( $name ); ?>[specialty_field]">
+								<option value="" <?php selected( $settings['specialty_field'], '' ); ?>><?php esc_html_e( '— none —', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['specialty_field'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Printed under the name in the detail modal. A multi-select field comes through as a comma-separated list, e.g. "Infectious Disease, Internal Medicine".', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-bio"><?php esc_html_e( 'Bio', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<select id="ghld-bio" name="<?php echo esc_attr( $name ); ?>[bio_field]">
@@ -525,7 +535,8 @@ class GHLD_Admin {
 	protected static function show_choices( array $fields ) {
 		$choices = array(
 			'photo'    => __( 'Photo', 'gohighlevel-integration' ),
-			'title'    => __( 'Job title', 'gohighlevel-integration' ),
+			'title'     => __( 'Job title', 'gohighlevel-integration' ),
+			'specialty' => __( 'Primary specialty', 'gohighlevel-integration' ),
 			'company'  => __( 'Company', 'gohighlevel-integration' ),
 			'location' => __( 'City / state', 'gohighlevel-integration' ),
 			'address'  => __( 'Street address', 'gohighlevel-integration' ),

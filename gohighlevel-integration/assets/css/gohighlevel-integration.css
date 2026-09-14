@@ -488,3 +488,19 @@
 	color: var(--ghld-muted);
 	white-space: nowrap;
 }
+
+/* Specialty --------------------------------------------------------------- */
+
+/* Sits directly under the name as a subtitle, the way a physician's
+   specialties read on a practice listing. */
+.ghld-detail-specialty,
+.ghld-specialty {
+	margin: 0 0 0.5rem;
+	font-style: italic;
+	color: var(--ghld-muted);
+}
+
+.ghld-detail-specialty {
+	margin-top: -0.25rem;
+	font-size: 1rem;
+}

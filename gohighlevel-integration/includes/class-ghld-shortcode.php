@@ -258,13 +258,35 @@ class GHLD_Shortcode {
 	 * @return string[]
 	 */
 	public static function allowed_show() {
-		$base = array( 'photo', 'title', 'company', 'location', 'address', 'tags', 'email', 'phone', 'website', 'bio' );
+		$base = array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'tags', 'email', 'phone', 'website', 'bio' );
 
 		foreach ( GHLD_Repository::custom_fields() as $field ) {
 			$base[] = 'cf:' . $field['key'];
 		}
 
 		return $base;
+	}
+
+	/**
+	 * Custom field keys already claimed by a field mapping.
+	 *
+	 * A mapped field is printed in its own place — as the title, the specialty,
+	 * the bio, the photo — so it should not also appear as a generic labelled
+	 * row when someone ticks it in both lists.
+	 *
+	 * @return string[]
+	 */
+	public static function mapped_custom_keys() {
+		$keys = array();
+
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'bio_field' ) as $setting ) {
+			$value = (string) GHLD_Settings::get( $setting, '' );
+			if ( 0 === strpos( $value, 'cf:' ) ) {
+				$keys[] = substr( $value, 3 );
+			}
+		}
+
+		return $keys;
 	}
 
 	/**

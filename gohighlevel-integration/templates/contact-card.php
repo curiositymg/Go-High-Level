@@ -75,6 +75,10 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 			<p class="ghld-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
 		<?php endif; ?>
 
+		<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
+			<p class="ghld-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
+		<?php endif; ?>
+
 		<?php if ( $ghld_showing( 'company' ) && '' !== $ghld_contact['company'] ) : ?>
 			<p class="ghld-company"><?php echo esc_html( $ghld_contact['company'] ); ?></p>
 		<?php endif; ?>
@@ -97,11 +101,16 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 		<?php endif; ?>
 
 		<?php
+		$ghld_claimed = GHLD_Shortcode::mapped_custom_keys();
+
 		foreach ( $ghld_show as $ghld_key ) {
 			if ( 0 !== strpos( $ghld_key, 'cf:' ) ) {
 				continue;
 			}
 			$ghld_field_key = substr( $ghld_key, 3 );
+			if ( in_array( $ghld_field_key, $ghld_claimed, true ) ) {
+				continue;
+			}
 			$ghld_value     = isset( $ghld_contact['custom'][ $ghld_field_key ] ) ? $ghld_contact['custom'][ $ghld_field_key ] : '';
 			if ( '' === $ghld_value ) {
 				continue;

@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,13 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.4.0 =
+* Map a Primary Specialty field and print it as an italic subtitle under the
+  name in the detail modal. Multi-select fields render as a comma-separated
+  list, e.g. "Infectious Disease, Internal Medicine".
+* A custom field claimed by a mapping (photo, title, specialty, bio) is no
+  longer also printed as a generic labelled row.
 
 = 1.3.0 =
 * Print the name line as "Name, Title" (e.g. "Emily Billingsley, MD"), with the
