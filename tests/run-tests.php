@@ -850,7 +850,8 @@ $bar = GHLD_Template::get(
 	)
 );
 
-ghld_ok( false !== strpos( $bar, 'class="ghld-reset"' ), 'the Clear button keeps ghld-reset as a styling hook' );
+ghld_ok( false !== strpos( $bar, 'ghld-reset' ), 'the Clear button keeps ghld-reset as a styling hook' );
+ghld_ok( false !== strpos( $bar, 'blue-button' ), "the Clear button carries the theme's blue-button class" );
 ghld_ok( false === strpos( $bar, 'ghld-button ghld-reset' ), 'the Clear button carries no ghld-button class, so the theme styles it' );
 ghld_ok( false !== strpos( $bar, 'data-ghld-reset' ), 'the Clear button is still wired up' );
 

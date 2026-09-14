@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.3
+Stable tag: 1.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.5.4 =
+* The Clear button carries the theme's blue-button class.
 
 = 1.5.3 =
 * Filter-bar fields no longer force themselves to full width; the theme's own

@@ -132,7 +132,11 @@ $ghld_select = static function ( $name, $label, array $values, $current, $any ) 
 
 	<div class="ghld-field ghld-field-actions">
 		<button type="submit" class="ghld-button ghld-submit"><?php esc_html_e( 'Filter', 'gohighlevel-integration' ); ?></button>
-		<?php // No ghld-button class here on purpose: the Clear button inherits the theme's own button styling. `.ghld-reset` stays as a styling hook. ?>
-		<button type="reset" class="ghld-reset" data-ghld-reset><?php esc_html_e( 'Clear', 'gohighlevel-integration' ); ?></button>
+		<?php
+		// No ghld-button class here on purpose: the Clear button takes the
+		// theme's own button styling via `blue-button`. `.ghld-reset` stays as
+		// this plugin's styling hook.
+		?>
+		<button type="reset" class="ghld-reset blue-button" data-ghld-reset><?php esc_html_e( 'Clear', 'gohighlevel-integration' ); ?></button>
 	</div>
 </form>
