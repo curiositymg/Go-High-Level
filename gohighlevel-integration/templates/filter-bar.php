@@ -55,7 +55,8 @@ $ghld_select = static function ( $name, $label, array $values, $current, $any ) 
 <form class="ghld-filter-bar" method="get" data-ghld-form role="search">
 	<?php if ( in_array( 'search', $ghld_filters, true ) ) : ?>
 		<div class="ghld-field ghld-field-search">
-			<label class="ghld-label" for="<?php echo esc_attr( 'ghld-' . $ghld_prefix . 's' ); ?>"><?php esc_html_e( 'Search', 'gohighlevel-integration' ); ?></label>
+			<?php // Kept in the markup, hidden visually: the placeholder is not a label, and screen readers need one. ?>
+			<label class="ghld-label ghld-label-hidden" for="<?php echo esc_attr( 'ghld-' . $ghld_prefix . 's' ); ?>"><?php esc_html_e( 'Search', 'gohighlevel-integration' ); ?></label>
 			<input
 				type="search"
 				id="<?php echo esc_attr( 'ghld-' . $ghld_prefix . 's' ); ?>"

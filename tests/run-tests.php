@@ -854,6 +854,8 @@ ghld_ok( false !== strpos( $bar, 'ghld-reset' ), 'the Clear button keeps ghld-re
 ghld_ok( false !== strpos( $bar, 'blue-button' ), "the Clear button carries the theme's blue-button class" );
 ghld_ok( false === strpos( $bar, 'ghld-button ghld-reset' ), 'the Clear button carries no ghld-button class, so the theme styles it' );
 ghld_ok( false !== strpos( $bar, 'data-ghld-reset' ), 'the Clear button is still wired up' );
+ghld_ok( false !== strpos( $bar, 'ghld-label ghld-label-hidden' ), 'the search label is hidden visually, not removed' );
+ghld_ok( false !== strpos( $bar, 'for="ghld-ghld_s"' ), 'the search label still points at its input' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

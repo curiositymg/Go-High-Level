@@ -56,6 +56,20 @@
 	color: var(--ghld-muted);
 }
 
+/* Present for assistive tech, absent on screen. */
+.ghld-label-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+}
+
 .ghld-input,
 .ghld-select {
 	/* No width here — the theme's own form styling decides. max-width only
