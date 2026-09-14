@@ -118,6 +118,10 @@ lists the discovered fields by name after the first sync.
   a contact costs no request, survives the grid being swapped out by a filter,
   and can never reach a contact outside the directory's scope. Without
   JavaScript the cards are simply not clickable; nothing else changes.
+- **The modal's practice block.** Organization name, postal address and `P.` /
+  `F.` lines render together beside the photo. Organization and Fax are mapped
+  fields (GoHighLevel has no fax field of its own); Organization falls back to
+  the contact's Company when its mapped field is empty.
 - **Specialty.** A mapped *Primary specialty* field prints as an italic
   subtitle under the name in the modal. GoHighLevel multi-select values arrive
   as a comma-separated list, so one field covers "Infectious Disease, Internal
@@ -168,7 +172,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 126 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 130 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

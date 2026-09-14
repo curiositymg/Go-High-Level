@@ -158,6 +158,13 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 				esc_html( $ghld_contact['phone'] )
 			);
 		}
+		if ( $ghld_showing( 'fax' ) && ! empty( $ghld_contact['fax'] ) ) {
+			$ghld_links[] = sprintf(
+				'<span class="ghld-link ghld-link-fax">%1$s %2$s</span>',
+				esc_html__( 'F.', 'gohighlevel-integration' ),
+				esc_html( $ghld_contact['fax'] )
+			);
+		}
 		if ( $ghld_showing( 'website' ) && '' !== $ghld_contact['website'] ) {
 			$ghld_links[] = sprintf(
 				'<a class="ghld-link ghld-link-website" href="%1$s" rel="nofollow noopener" target="_blank">%2$s</a>',

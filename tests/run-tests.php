@@ -614,12 +614,13 @@ $detail = GHLD_Template::get(
 );
 ghld_ok( false !== strpos( $detail, 'Cardiology' ), 'the modal lists the contact tags' );
 ghld_ok( false !== strpos( $detail, '12 Clinic Way' ), 'the modal carries the full address' );
+ghld_ok( false !== strpos( $detail, 'tel:+15550142' ), 'the modal links the phone number' );
+ghld_ok( false !== strpos( $detail, '<span class="ghld-tel-label">P.</span>' ), 'the phone number is prefixed with P.' );
 ghld_ok( false === strpos( $detail, 'rosalind@example.com' ), 'the modal withholds an email address that was not ticked' );
-ghld_ok( false === strpos( $detail, '555-0142' ), 'the modal withholds a phone number that was not ticked' );
 
 $contactable = array_merge(
 	$default_scope,
-	array( 'modal_show' => array_merge( $default_scope['modal_show'], array( 'email', 'phone' ) ) )
+	array( 'modal_show' => array_merge( $default_scope['modal_show'], array( 'email' ) ) )
 );
 $reachable   = GHLD_Template::get(
 	'contact-detail',
@@ -629,7 +630,15 @@ $reachable   = GHLD_Template::get(
 	)
 );
 ghld_ok( false !== strpos( $reachable, 'mailto:rosalind@example.com' ), 'ticking Email adds a mailto link to the modal' );
-ghld_ok( false !== strpos( $reachable, 'tel:+15550142' ), 'ticking Phone adds a tel link with the number normalized' );
+
+$unreachable = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $franklin,
+		'scope'   => array_merge( $default_scope, array( 'modal_show' => array( 'photo', 'company' ) ) ),
+	)
+);
+ghld_ok( false === strpos( $unreachable, '555-0142' ), 'unticking Phone removes it from the modal' );
 
 $hostile_detail = GHLD_Template::get(
 	'contact-detail',
@@ -812,6 +821,29 @@ ghld_ok( false === strpos( $plain_detail, 'ghld-detail-specialty' ), 'unticking 
 // Restore the earlier fixtures for the sections that follow.
 update_option( 'ghld_custom_fields', $physician_fields );
 update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
+ * Filter bar
+ * ---------------------------------------------------------------------- */
+
+$bar = GHLD_Template::get(
+	'filter-bar',
+	array(
+		'scope'   => $default_scope,
+		'request' => GHLD_Shortcode::parse_request( array(), $default_scope ),
+		'facets'  => array(
+			'tag'     => array( 'Cardiology' => 1 ),
+			'city'    => array(),
+			'state'   => array(),
+			'company' => array(),
+			'custom'  => array(),
+		),
+	)
+);
+
+ghld_ok( false !== strpos( $bar, 'class="ghld-reset"' ), 'the Clear button keeps ghld-reset as a styling hook' );
+ghld_ok( false === strpos( $bar, 'ghld-button ghld-reset' ), 'the Clear button carries no ghld-button class, so the theme styles it' );
+ghld_ok( false !== strpos( $bar, 'data-ghld-reset' ), 'the Clear button is still wired up' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

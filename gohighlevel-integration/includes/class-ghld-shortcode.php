@@ -258,7 +258,7 @@ class GHLD_Shortcode {
 	 * @return string[]
 	 */
 	public static function allowed_show() {
-		$base = array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'tags', 'email', 'phone', 'website', 'bio' );
+		$base = array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'tags', 'email', 'phone', 'fax', 'website', 'bio' );
 
 		foreach ( GHLD_Repository::custom_fields() as $field ) {
 			$base[] = 'cf:' . $field['key'];
@@ -279,7 +279,7 @@ class GHLD_Shortcode {
 	public static function mapped_custom_keys() {
 		$keys = array();
 
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'bio_field' ) as $setting ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'company_field', 'fax_field', 'bio_field' ) as $setting ) {
 			$value = (string) GHLD_Settings::get( $setting, '' );
 			if ( 0 === strpos( $value, 'cf:' ) ) {
 				$keys[] = substr( $value, 3 );

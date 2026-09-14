@@ -62,7 +62,8 @@ class GHLD_Contact {
 			'name'          => $name,
 			'email'         => is_email( $email ) ? $email : '',
 			'phone'         => self::str( $raw, 'phone' ),
-			'company'       => self::first_str( $raw, array( 'companyName', 'company', 'businessName' ) ),
+			'company_raw'   => self::first_str( $raw, array( 'companyName', 'company', 'businessName' ) ),
+			'company'       => '',
 			'website'       => self::url( self::str( $raw, 'website' ) ),
 			'address'       => self::first_str( $raw, array( 'address1', 'address' ) ),
 			'city'          => self::str( $raw, 'city' ),
@@ -273,6 +274,14 @@ class GHLD_Contact {
 	public static function apply_mapping( array $contact, array $settings ) {
 		$custom = isset( $contact['custom'] ) && is_array( $contact['custom'] ) ? $contact['custom'] : array();
 
+		// The practice name usually lives in a custom field; the CRM's own
+		// Company value is the fallback when that field is empty.
+		$contact['company']   = self::mapped_value( $settings, 'company_field', $custom, $contact );
+		if ( '' === $contact['company'] ) {
+			$contact['company'] = isset( $contact['company_raw'] ) ? (string) $contact['company_raw'] : '';
+		}
+
+		$contact['fax']       = self::mapped_value( $settings, 'fax_field', $custom, $contact );
 		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
 		$contact['specialty'] = self::mapped_value( $settings, 'specialty_field', $custom, $contact );
 		$contact['bio']   = self::mapped_value( $settings, 'bio_field', $custom, $contact );
@@ -291,7 +300,7 @@ class GHLD_Contact {
 	 */
 	public static function mapping_hash( array $settings ) {
 		$relevant = array();
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'bio_field', 'use_gravatar' ) as $key ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'company_field', 'fax_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
 

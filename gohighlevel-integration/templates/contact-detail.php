@@ -27,21 +27,6 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 	return in_array( $key, $ghld_show, true );
 };
 
-/**
- * One labelled row.
- *
- * @param string $label Row label.
- * @param string $value Already-escaped value markup.
- * @return void
- */
-$ghld_row = static function ( $label, $value ) {
-	printf(
-		'<div class="ghld-detail-row"><dt class="ghld-detail-label">%1$s</dt><dd class="ghld-detail-value">%2$s</dd></div>',
-		esc_html( $label ),
-		$value // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- callers escape.
-	);
-};
-
 $ghld_place = array_filter(
 	array(
 		$ghld_contact['city'],
@@ -49,6 +34,14 @@ $ghld_place = array_filter(
 	)
 );
 ?>
+<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
+	<p class="ghld-detail-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
+<?php endif; ?>
+
+<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>
+	<p class="ghld-detail-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
+<?php endif; ?>
+
 <div class="ghld-detail">
 	<?php if ( $ghld_showing( 'photo' ) ) : ?>
 		<div class="ghld-detail-media">
@@ -69,100 +62,109 @@ $ghld_place = array_filter(
 	<?php endif; ?>
 
 	<div class="ghld-detail-body">
-		<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
-			<p class="ghld-detail-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
-		<?php endif; ?>
+		<div class="ghld-detail-practice">
+			<?php if ( $ghld_showing( 'company' ) && '' !== $ghld_contact['company'] ) : ?>
+				<p class="ghld-detail-company"><?php echo esc_html( $ghld_contact['company'] ); ?></p>
+			<?php endif; ?>
 
-		<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>
-			<p class="ghld-detail-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
-		<?php endif; ?>
+			<?php
+			// Street address and "City, ST ZIP" read as one postal block.
+			$ghld_lines = array();
+			if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['address'] ) {
+				$ghld_lines[] = $ghld_contact['address'];
+			}
+			if ( ( $ghld_showing( 'address' ) || $ghld_showing( 'location' ) ) && ! empty( $ghld_place ) ) {
+				$ghld_lines[] = implode( ', ', $ghld_place );
+			}
+			if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['country'] ) {
+				$ghld_lines[] = $ghld_contact['country'];
+			}
 
-		<?php if ( $ghld_showing( 'company' ) && '' !== $ghld_contact['company'] ) : ?>
-			<p class="ghld-detail-company"><?php echo esc_html( $ghld_contact['company'] ); ?></p>
-		<?php endif; ?>
+			if ( ! empty( $ghld_lines ) ) {
+				printf(
+					'<p class="ghld-detail-address">%s</p>',
+					nl2br( esc_html( implode( "\n", $ghld_lines ) ) )
+				);
+			}
+
+			// "P." and "F." the way a practice listing prints them.
+			if ( $ghld_showing( 'phone' ) && '' !== $ghld_contact['phone'] ) {
+				printf(
+					'<p class="ghld-detail-tel"><span class="ghld-tel-label">%1$s</span> <a href="%2$s">%3$s</a></p>',
+					esc_html__( 'P.', 'gohighlevel-integration' ),
+					esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $ghld_contact['phone'] ) ),
+					esc_html( $ghld_contact['phone'] )
+				);
+			}
+
+			if ( $ghld_showing( 'fax' ) && ! empty( $ghld_contact['fax'] ) ) {
+				printf(
+					'<p class="ghld-detail-tel"><span class="ghld-tel-label">%1$s</span> %2$s</p>',
+					esc_html__( 'F.', 'gohighlevel-integration' ),
+					esc_html( $ghld_contact['fax'] )
+				);
+			}
+
+			if ( $ghld_showing( 'email' ) && '' !== $ghld_contact['email'] ) {
+				printf(
+					'<p class="ghld-detail-tel"><a href="%1$s">%2$s</a></p>',
+					esc_url( 'mailto:' . $ghld_contact['email'] ),
+					esc_html( $ghld_contact['email'] )
+				);
+			}
+
+			if ( $ghld_showing( 'website' ) && '' !== $ghld_contact['website'] ) {
+				printf(
+					'<p class="ghld-detail-tel"><a href="%1$s" rel="nofollow noopener" target="_blank">%2$s</a></p>',
+					esc_url( $ghld_contact['website'] ),
+					esc_html( preg_replace( '#^https?://#', '', $ghld_contact['website'] ) )
+				);
+			}
+			?>
+		</div>
 
 		<?php if ( $ghld_showing( 'bio' ) && '' !== $ghld_contact['bio'] ) : ?>
 			<p class="ghld-detail-bio"><?php echo esc_html( $ghld_contact['bio'] ); ?></p>
 		<?php endif; ?>
 
-		<dl class="ghld-detail-rows">
-			<?php
-			if ( $ghld_showing( 'address' ) || $ghld_showing( 'location' ) ) {
-				$ghld_lines = array();
-				if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['address'] ) {
-					$ghld_lines[] = $ghld_contact['address'];
-				}
-				if ( ! empty( $ghld_place ) ) {
-					$ghld_lines[] = implode( ', ', $ghld_place );
-				}
-				if ( $ghld_showing( 'address' ) && '' !== $ghld_contact['country'] ) {
-					$ghld_lines[] = $ghld_contact['country'];
-				}
-				if ( ! empty( $ghld_lines ) ) {
-					$ghld_row( __( 'Location', 'gohighlevel-integration' ), nl2br( esc_html( implode( "\n", $ghld_lines ) ) ) );
+		<?php
+		// Anything else the site ticked on, as labelled rows. Fields already
+		// claimed by a mapping are printed above, not repeated here.
+		$ghld_claimed = GHLD_Shortcode::mapped_custom_keys();
+		$ghld_rows    = '';
+
+		foreach ( $ghld_show as $ghld_key ) {
+			if ( 0 !== strpos( $ghld_key, 'cf:' ) ) {
+				continue;
+			}
+			$ghld_field_key = substr( $ghld_key, 3 );
+			if ( in_array( $ghld_field_key, $ghld_claimed, true ) ) {
+				continue;
+			}
+			$ghld_value = isset( $ghld_contact['custom'][ $ghld_field_key ] ) ? $ghld_contact['custom'][ $ghld_field_key ] : '';
+			if ( '' === $ghld_value ) {
+				continue;
+			}
+
+			$ghld_label = $ghld_field_key;
+			foreach ( GHLD_Repository::custom_fields() as $ghld_field ) {
+				if ( $ghld_field['key'] === $ghld_field_key ) {
+					$ghld_label = $ghld_field['name'];
+					break;
 				}
 			}
 
-			if ( $ghld_showing( 'phone' ) && '' !== $ghld_contact['phone'] ) {
-				$ghld_row(
-					__( 'Phone', 'gohighlevel-integration' ),
-					sprintf(
-						'<a href="%1$s">%2$s</a>',
-						esc_url( 'tel:' . preg_replace( '/[^0-9+]/', '', $ghld_contact['phone'] ) ),
-						esc_html( $ghld_contact['phone'] )
-					)
-				);
-			}
+			$ghld_rows .= sprintf(
+				'<div class="ghld-detail-row"><dt class="ghld-detail-label">%1$s</dt><dd class="ghld-detail-value">%2$s</dd></div>',
+				esc_html( $ghld_label ),
+				esc_html( $ghld_value )
+			);
+		}
 
-			if ( $ghld_showing( 'email' ) && '' !== $ghld_contact['email'] ) {
-				$ghld_row(
-					__( 'Email', 'gohighlevel-integration' ),
-					sprintf(
-						'<a href="%1$s">%2$s</a>',
-						esc_url( 'mailto:' . $ghld_contact['email'] ),
-						esc_html( $ghld_contact['email'] )
-					)
-				);
-			}
-
-			if ( $ghld_showing( 'website' ) && '' !== $ghld_contact['website'] ) {
-				$ghld_row(
-					__( 'Website', 'gohighlevel-integration' ),
-					sprintf(
-						'<a href="%1$s" rel="nofollow noopener" target="_blank">%2$s</a>',
-						esc_url( $ghld_contact['website'] ),
-						esc_html( preg_replace( '#^https?://#', '', $ghld_contact['website'] ) )
-					)
-				);
-			}
-
-			$ghld_claimed = GHLD_Shortcode::mapped_custom_keys();
-
-			foreach ( $ghld_show as $ghld_key ) {
-				if ( 0 !== strpos( $ghld_key, 'cf:' ) ) {
-					continue;
-				}
-				$ghld_field_key = substr( $ghld_key, 3 );
-				if ( in_array( $ghld_field_key, $ghld_claimed, true ) ) {
-					continue;
-				}
-				$ghld_value     = isset( $ghld_contact['custom'][ $ghld_field_key ] ) ? $ghld_contact['custom'][ $ghld_field_key ] : '';
-				if ( '' === $ghld_value ) {
-					continue;
-				}
-
-				$ghld_label = $ghld_field_key;
-				foreach ( GHLD_Repository::custom_fields() as $ghld_field ) {
-					if ( $ghld_field['key'] === $ghld_field_key ) {
-						$ghld_label = $ghld_field['name'];
-						break;
-					}
-				}
-
-				$ghld_row( $ghld_label, esc_html( $ghld_value ) );
-			}
-			?>
-		</dl>
+		if ( '' !== $ghld_rows ) {
+			printf( '<dl class="ghld-detail-rows">%s</dl>', $ghld_rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+		}
+		?>
 
 		<?php
 		$ghld_hidden_tag = GHLD_Repository::scope_tag( $data['scope'] );

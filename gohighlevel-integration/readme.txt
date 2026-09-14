@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,16 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.5.0 =
+* Modal laid out like a practice listing: name and specialty across the top,
+  then the photo beside the organization name, postal address and "P." / "F."
+  phone and fax lines.
+* New mappings for Organization (falling back to the contact's Company field)
+  and Fax, which GoHighLevel has no built-in field for.
+* Phone and fax now appear in the modal by default; email still does not.
+* Filter-bar buttons no longer stretch to full width, and the Clear button
+  inherits the theme's own button styling.
 
 = 1.4.0 =
 * Map a Primary Specialty field and print it as an italic subtitle under the

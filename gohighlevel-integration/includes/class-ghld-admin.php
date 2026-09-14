@@ -265,6 +265,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-company"><?php esc_html_e( 'Organization', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-company" name="<?php echo esc_attr( $name ); ?>[company_field]">
+								<option value="" <?php selected( $settings['company_field'], '' ); ?>><?php esc_html_e( 'The contact\'s own Company field', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['company_field'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'The practice or organization name. Falls back to the contact\'s Company field when the mapped field is empty.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-specialty"><?php esc_html_e( 'Primary specialty', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<select id="ghld-specialty" name="<?php echo esc_attr( $name ); ?>[specialty_field]">
@@ -272,6 +282,16 @@ class GHLD_Admin {
 								<?php self::field_options( $fields, $settings['specialty_field'] ); ?>
 							</select>
 							<p class="description"><?php esc_html_e( 'Printed under the name in the detail modal. A multi-select field comes through as a comma-separated list, e.g. "Infectious Disease, Internal Medicine".', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="ghld-fax"><?php esc_html_e( 'Fax', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-fax" name="<?php echo esc_attr( $name ); ?>[fax_field]">
+								<option value="" <?php selected( $settings['fax_field'], '' ); ?>><?php esc_html_e( '— none —', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['fax_field'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'GoHighLevel has no built-in fax field, so this reads from a custom field.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -544,6 +564,7 @@ class GHLD_Admin {
 			'bio'      => __( 'Bio', 'gohighlevel-integration' ),
 			'email'    => __( 'Email address', 'gohighlevel-integration' ),
 			'phone'    => __( 'Phone number', 'gohighlevel-integration' ),
+			'fax'      => __( 'Fax number', 'gohighlevel-integration' ),
 			'website'  => __( 'Website', 'gohighlevel-integration' ),
 		);
 

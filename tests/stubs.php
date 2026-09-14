@@ -248,6 +248,19 @@ function esc_attr_e( $text, $domain = null ) {
 }
 
 /**
+ * Escaped translation.
+ *
+ * @param string $text   Text.
+ * @param string $domain Ignored.
+ * @return string
+ */
+function esc_html__( $text, $domain = null ) {
+	unset( $domain );
+
+	return esc_html( $text );
+}
+
+/**
  * Escaped attribute translation.
  *
  * @param string $text   Text.

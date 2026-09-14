@@ -69,6 +69,8 @@
 }
 
 .ghld-button {
+	width: auto;
+	flex: 0 0 auto;
 	padding: 0.55rem 1rem;
 	border: 1px solid var(--ghld-border);
 	border-radius: calc(var(--ghld-radius) / 2);
@@ -81,6 +83,14 @@
 .ghld-button:hover,
 .ghld-button:focus-visible {
 	border-color: var(--ghld-accent);
+}
+
+/* A theme that sets width:100% on `button` outranks the class above, so repeat
+   it at a specificity the theme can't beat. */
+.ghld-directory .ghld-filter-bar button.ghld-button,
+.ghld-directory button.ghld-button {
+	width: auto;
+	max-width: 100%;
 }
 
 /* With JavaScript the filters apply as you type, so the submit button is only
@@ -419,16 +429,46 @@
 	--ghld-avatar-size: 8.5rem;
 }
 
-.ghld-detail-title,
-.ghld-detail-company {
+.ghld-detail-title {
 	margin: 0 0 0.25rem;
 	font-size: 1rem;
 	color: var(--ghld-muted);
 }
 
+.ghld-detail-company {
+	margin: 0 0 0.25rem;
+	font-size: 1rem;
+	font-weight: 700;
+}
+
 .ghld-detail-bio {
 	margin: 0.75rem 0 0;
 	line-height: 1.6;
+}
+
+/* The practice block: name, postal address, then P. / F. — laid out the way a
+   practice listing reads rather than as labelled metadata. */
+.ghld-detail-practice p {
+	margin: 0 0 0.15rem;
+	line-height: 1.45;
+}
+
+.ghld-detail-address {
+	color: inherit;
+}
+
+.ghld-detail-tel {
+	overflow-wrap: anywhere;
+}
+
+.ghld-tel-label {
+	display: inline-block;
+	min-width: 1.25em;
+	font-weight: 600;
+}
+
+.ghld-detail-practice a {
+	color: inherit;
 }
 
 .ghld-detail-rows {
@@ -501,6 +541,6 @@
 }
 
 .ghld-detail-specialty {
-	margin-top: -0.25rem;
-	font-size: 1rem;
+	margin: -0.5rem 0 1rem;
+	font-size: 1.05rem;
 }
