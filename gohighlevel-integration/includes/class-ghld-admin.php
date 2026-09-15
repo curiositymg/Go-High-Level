@@ -168,15 +168,22 @@ class GHLD_Admin {
 		}
 
 		$fields = $client->get_custom_fields();
+		$fields = is_wp_error( $fields ) ? GHLD_Repository::custom_fields() : $fields;
+
+		// Run the live payload through the same normalizer the front end uses,
+		// so the panel can show the actual <img> it would produce.
+		$resolved = GHLD_Contact::normalize( $raw, $fields, GHLD_Settings::all() );
 
 		set_transient(
 			'ghld_inspect',
 			array(
-				'contact' => $raw,
-				'fields'  => is_wp_error( $fields ) ? array() : $fields,
-				'source'  => $source,
-				'name'    => ( null !== $cached ) ? $cached['name'] : '',
-				'cached'  => ( null !== $cached && isset( $cached['custom'] ) ) ? $cached['custom'] : array(),
+				'contact'      => $raw,
+				'fields'       => $fields,
+				'source'       => $source,
+				'name'         => ( null !== $cached ) ? $cached['name'] : '',
+				'cached'       => ( null !== $cached && isset( $cached['custom'] ) ) ? $cached['custom'] : array(),
+				'live_photo'   => $resolved['photo'],
+				'cached_photo' => ( null !== $cached && isset( $cached['photo'] ) ) ? $cached['photo'] : '',
 			),
 			5 * MINUTE_IN_SECONDS
 		);
@@ -228,9 +235,43 @@ class GHLD_Admin {
 			}
 		}
 
+		$live   = isset( $data['live_photo'] ) ? (string) $data['live_photo'] : '';
+		$stored = isset( $data['cached_photo'] ) ? (string) $data['cached_photo'] : '';
 		?>
 		<details open style="margin:1em 0;padding:1em;border:1px solid #c3c4c7;background:#fff">
 			<summary><strong><?php esc_html_e( 'Raw payload for one contact', 'gohighlevel-integration' ); ?></strong></summary>
+
+			<h3><?php esc_html_e( 'The headshot, end to end', 'gohighlevel-integration' ); ?></h3>
+			<table class="widefat striped" style="margin-bottom:1em">
+				<tr>
+					<td style="width:18em"><strong><?php esc_html_e( 'Resolved from this payload', 'gohighlevel-integration' ); ?></strong></td>
+					<td><code><?php echo esc_html( '' === $live ? __( '(nothing)', 'gohighlevel-integration' ) : $live ); ?></code></td>
+				</tr>
+				<tr>
+					<td><strong><?php esc_html_e( 'What the card will output', 'gohighlevel-integration' ); ?></strong></td>
+					<td><code><?php echo esc_html( '' === $live ? __( '(the initials circle)', 'gohighlevel-integration' ) : '<img class="ghld-avatar" src="' . $live . '">' ); ?></code></td>
+				</tr>
+				<tr>
+					<td><strong><?php esc_html_e( 'What the cache holds right now', 'gohighlevel-integration' ); ?></strong></td>
+					<td><code><?php echo esc_html( '' === $stored ? __( '(nothing)', 'gohighlevel-integration' ) : $stored ); ?></code></td>
+				</tr>
+			</table>
+
+			<?php if ( '' !== $live ) : ?>
+				<p>
+					<?php esc_html_e( 'Loaded from that URL, right here:', 'gohighlevel-integration' ); ?><br />
+					<img src="<?php echo esc_url( $live ); ?>" alt="" style="max-width:160px;border-radius:50%;margin-top:.5em" />
+				</p>
+				<?php if ( $live !== $stored ) : ?>
+					<p class="notice notice-warning" style="padding:8px 12px">
+						<?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it — press "Sync now" to bring the cache up to date. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?>
+					</p>
+				<?php endif; ?>
+			<?php else : ?>
+				<p class="notice notice-error" style="padding:8px 12px">
+					<?php esc_html_e( 'No headshot could be resolved from this payload. The custom field values below are exactly what arrived — if a URL is visible in there, send it over and I can fix the extraction.', 'gohighlevel-integration' ); ?>
+				</p>
+			<?php endif; ?>
 
 			<p>
 				<?php if ( empty( $custom ) ) : ?>

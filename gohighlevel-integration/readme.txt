@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.8.2
+Stable tag: 1.8.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.8.3 =
+* "Inspect a contact" now shows the headshot end to end: the URL resolved from
+  the live payload, the exact <img> tag the card will output, what the cache
+  currently holds, and the image itself loaded from that URL.
 
 = 1.8.2 =
 * Use the live upload in a file-upload field rather than one that was replaced.
