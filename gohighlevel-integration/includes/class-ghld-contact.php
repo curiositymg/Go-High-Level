@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '2';
+	const DERIVED_VERSION = '3';
 
 	/**
 	 * Normalize one contact.
@@ -179,11 +179,7 @@ class GHLD_Contact {
 
 		$values = array();
 		foreach ( $entries as $entry ) {
-			$value = $entry['value'];
-			if ( is_array( $value ) ) {
-				$value = implode( ', ', array_map( 'strval', $value ) );
-			}
-			$value = trim( (string) $value );
+			$value = self::flatten_value( $entry['value'] );
 			if ( '' === $value ) {
 				continue;
 			}
@@ -210,6 +206,49 @@ class GHLD_Contact {
 		}
 
 		return $values;
+	}
+
+	/**
+	 * Reduce a custom field value to a string.
+	 *
+	 * Most values are scalars or a flat list (a multi-select). File uploads are
+	 * the awkward case: they arrive as a list of {url: ...} objects, or as an
+	 * object keyed by document ID, and stringifying those yields "Array".
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	protected static function flatten_value( $value ) {
+		if ( is_scalar( $value ) ) {
+			return trim( (string) $value );
+		}
+		if ( ! is_array( $value ) ) {
+			return '';
+		}
+
+		// A single {url: ...} object.
+		if ( isset( $value['url'] ) && is_scalar( $value['url'] ) ) {
+			return trim( (string) $value['url'] );
+		}
+
+		$parts = array();
+		foreach ( $value as $item ) {
+			if ( is_scalar( $item ) ) {
+				$parts[] = (string) $item;
+				continue;
+			}
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			foreach ( array( 'url', 'value', 'name' ) as $property ) {
+				if ( isset( $item[ $property ] ) && is_scalar( $item[ $property ] ) ) {
+					$parts[] = (string) $item[ $property ];
+					break;
+				}
+			}
+		}
+
+		return trim( implode( ', ', $parts ) );
 	}
 
 	/**
@@ -341,7 +380,7 @@ class GHLD_Contact {
 
 		if ( 0 === strpos( $field, 'cf:' ) ) {
 			$key = substr( $field, 3 );
-			$url = isset( $custom[ $key ] ) ? self::url( $custom[ $key ] ) : '';
+			$url = isset( $custom[ $key ] ) ? self::first_url( $custom[ $key ] ) : '';
 			if ( '' !== $url ) {
 				return $url;
 			}
@@ -358,6 +397,35 @@ class GHLD_Contact {
 		}
 
 		return '';
+	}
+
+	/**
+	 * First usable URL in a custom field value.
+	 *
+	 * A GoHighLevel file-upload field holds more than a bare URL: its value can
+	 * flatten to several comma-separated URLs (one per uploaded file). Take the
+	 * first that is actually usable rather than failing on the whole string.
+	 *
+	 * @param string $value Flattened custom field value.
+	 * @return string
+	 */
+	public static function first_url( $value ) {
+		$value = trim( (string) $value );
+		if ( '' === $value ) {
+			return '';
+		}
+
+		// Split first: a flattened multi-value would otherwise be accepted whole.
+		if ( false !== strpos( $value, ',' ) ) {
+			foreach ( explode( ',', $value ) as $candidate ) {
+				$url = self::url( trim( $candidate ) );
+				if ( '' !== $url ) {
+					return $url;
+				}
+			}
+		}
+
+		return self::url( $value );
 	}
 
 	/**
@@ -526,15 +594,57 @@ class GHLD_Contact {
 		if ( '' === $value ) {
 			return '';
 		}
+
+		// A URL carries no whitespace; anything that does is prose, or several
+		// values that were flattened into one string.
+		if ( preg_match( '/\s/', $value ) ) {
+			return '';
+		}
+
 		if ( ! preg_match( '#^https?://#i', $value ) ) {
-			if ( preg_match( '#^[a-z0-9.-]+\.[a-z]{2,}(/|$)#i', $value ) ) {
-				$value = 'https://' . $value;
-			} else {
+			if ( ! preg_match( '#^[a-z0-9.-]+\.([a-z]{2,})(/|$)#i', $value, $matches ) ) {
 				return '';
 			}
+
+			// "headshot.jpg" looks exactly like a bare domain, so a file
+			// extension with no path is a filename, not a host to prepend
+			// https:// to.
+			if ( false === strpos( $value, '/' ) && in_array( strtolower( $matches[1] ), self::file_extensions(), true ) ) {
+				return '';
+			}
+
+			$value = 'https://' . $value;
 		}
 
 		return esc_url_raw( $value );
+	}
+
+	/**
+	 * Extensions that mark a bare string as a filename rather than a host.
+	 *
+	 * @return string[]
+	 */
+	protected static function file_extensions() {
+		return array(
+			'jpg',
+			'jpeg',
+			'png',
+			'gif',
+			'webp',
+			'svg',
+			'bmp',
+			'tif',
+			'tiff',
+			'heic',
+			'pdf',
+			'doc',
+			'docx',
+			'txt',
+			'csv',
+			'zip',
+			'mp4',
+			'mov',
+		);
 	}
 
 	/**

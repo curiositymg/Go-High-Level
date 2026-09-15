@@ -440,6 +440,7 @@ class GHLD_Admin {
 				<strong><?php esc_html_e( 'Custom fields discovered:', 'gohighlevel-integration' ); ?></strong>
 				<?php echo esc_html( number_format_i18n( count( GHLD_Repository::custom_fields() ) ) ); ?>
 			</p>
+			<?php self::render_photo_diagnostics(); ?>
 			<?php if ( ! empty( $state['error'] ) ) : ?>
 				<p class="notice notice-error" style="padding:8px 12px">
 					<strong><?php esc_html_e( 'Last error:', 'gohighlevel-integration' ); ?></strong>
@@ -459,6 +460,104 @@ class GHLD_Admin {
 				<?php endforeach; ?>
 			</p>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Say what the cache actually holds for the mapped photo field.
+	 *
+	 * "The headshots aren't showing" has several causes that look identical on
+	 * the front end — the field isn't mapped to the right key, the value isn't a
+	 * URL, or the contacts were cached before the field was filled in. This
+	 * prints enough to tell them apart without opening the database.
+	 *
+	 * @return void
+	 */
+	protected static function render_photo_diagnostics() {
+		$contacts = get_option( GHLD_Repository::OPTION_CONTACTS, array() );
+		$contacts = is_array( $contacts ) ? $contacts : array();
+
+		if ( empty( $contacts ) ) {
+			return;
+		}
+
+		$field = (string) GHLD_Settings::get( 'photo_field', '' );
+		$key   = ( 0 === strpos( $field, 'cf:' ) ) ? substr( $field, 3 ) : '';
+
+		$with_photo = 0;
+		$samples    = array();
+		$key_counts = array();
+
+		foreach ( $contacts as $contact ) {
+			if ( ! empty( $contact['photo'] ) ) {
+				$with_photo++;
+			} elseif ( '' !== $key && ! empty( $contact['custom'][ $key ] ) && count( $samples ) < 3 ) {
+				$samples[] = (string) $contact['custom'][ $key ];
+			}
+
+			if ( ! empty( $contact['custom'] ) && is_array( $contact['custom'] ) ) {
+				foreach ( array_keys( $contact['custom'] ) as $custom_key ) {
+					$key_counts[ $custom_key ] = isset( $key_counts[ $custom_key ] ) ? $key_counts[ $custom_key ] + 1 : 1;
+				}
+			}
+		}
+
+		?>
+		<p>
+			<strong><?php esc_html_e( 'Contacts with a headshot:', 'gohighlevel-integration' ); ?></strong>
+			<?php
+			printf(
+				/* translators: 1: contacts with a photo, 2: total cached contacts. */
+				esc_html__( '%1$s of %2$s', 'gohighlevel-integration' ),
+				esc_html( number_format_i18n( $with_photo ) ),
+				esc_html( number_format_i18n( count( $contacts ) ) )
+			);
+			?>
+		</p>
+		<?php
+
+		if ( $with_photo > 0 || '' === $key ) {
+			return;
+		}
+
+		if ( ! empty( $samples ) ) {
+			?>
+			<p class="notice notice-warning" style="padding:8px 12px">
+				<?php
+				printf(
+					/* translators: %s: custom field key. */
+					esc_html__( 'Every cached contact has an empty or unusable value for "%s". The plugin reads it as:', 'gohighlevel-integration' ),
+					esc_html( $key )
+				);
+				?>
+				<br />
+				<?php foreach ( $samples as $sample ) : ?>
+					<code><?php echo esc_html( $sample ); ?></code><br />
+				<?php endforeach; ?>
+				<?php esc_html_e( 'A headshot needs to be a full https:// image URL.', 'gohighlevel-integration' ); ?>
+			</p>
+			<?php
+
+			return;
+		}
+
+		arsort( $key_counts );
+		$in_use = array_slice( array_keys( $key_counts ), 0, 12 );
+		?>
+		<p class="notice notice-warning" style="padding:8px 12px">
+			<?php
+			printf(
+				/* translators: %s: custom field key. */
+				esc_html__( 'No cached contact carries any value for "%s". Either the field is empty in GoHighLevel, or the mapping points at the wrong key — press "Sync now" after filling it in.', 'gohighlevel-integration' ),
+				esc_html( $key )
+			);
+			?>
+			<?php if ( ! empty( $in_use ) ) : ?>
+				<br />
+				<strong><?php esc_html_e( 'Keys that do hold values:', 'gohighlevel-integration' ); ?></strong>
+				<code><?php echo esc_html( implode( ', ', $in_use ) ); ?></code>
+			<?php endif; ?>
+		</p>
 		<?php
 	}
 

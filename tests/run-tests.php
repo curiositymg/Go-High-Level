@@ -858,6 +858,66 @@ ghld_ok( false !== strpos( $bar, 'ghld-label ghld-label-hidden' ), 'the search l
 ghld_ok( false !== strpos( $bar, 'for="ghld-ghld_s"' ), 'the search label still points at its input' );
 
 /* -------------------------------------------------------------------------
+ * Awkward custom field value shapes
+ * ---------------------------------------------------------------------- */
+
+$photo_map = array(
+	'fld_mpp' => array(
+		'key'  => 'member_profile_photo',
+		'name' => 'Member Profile Photo',
+		'type' => 'FILE_UPLOAD',
+	),
+);
+
+/**
+ * Normalize one contact carrying a given photo field value.
+ *
+ * @param mixed $value Raw custom field value.
+ * @return array
+ */
+function ghld_photo_contact( $value ) {
+	return GHLD_Contact::normalize(
+		array(
+			'id'           => 'ph',
+			'contactName'  => 'Photo Test',
+			'customFields' => array(
+				array(
+					'id'    => 'fld_mpp',
+					'value' => $value,
+				),
+			),
+		),
+		array(
+			'fld_mpp' => array(
+				'key'  => 'member_profile_photo',
+				'name' => 'Member Profile Photo',
+				'type' => 'FILE_UPLOAD',
+			),
+		),
+		GHLD_Settings::defaults()
+	);
+}
+
+$shot = 'https://cdn.example.com/headshot.jpg';
+
+ghld_same( $shot, ghld_photo_contact( $shot )['photo'], 'a plain URL string resolves' );
+ghld_same( $shot, ghld_photo_contact( array( $shot ) )['photo'], 'a single-item list resolves' );
+ghld_same( $shot, ghld_photo_contact( array( array( 'url' => $shot ) ) )['photo'], 'a list of {url} objects resolves' );
+ghld_same( $shot, ghld_photo_contact( array( 'url' => $shot ) )['photo'], 'a single {url} object resolves' );
+ghld_same( $shot, ghld_photo_contact( array( 'doc_abc123' => $shot ) )['photo'], 'an object keyed by document ID resolves' );
+ghld_same(
+	$shot,
+	ghld_photo_contact( array( array( 'name' => 'headshot.jpg' ), array( 'url' => $shot ) ) )['photo'],
+	'the first usable URL wins when a file field carries several values'
+);
+ghld_same( '', ghld_photo_contact( 'headshot.jpg' )['photo'], 'a bare filename is not treated as a URL' );
+ghld_same( '', ghld_photo_contact( array() )['photo'], 'an empty file field leaves the initials fallback in place' );
+
+$multi = ghld_photo_contact( array( $shot, 'https://cdn.example.com/second.jpg' ) );
+ghld_same( $shot, $multi['photo'], 'several uploaded files use the first' );
+ghld_ok( false === strpos( $multi['search_key'], 'headshot.jpg' ), 'URL values stay out of the search index' );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

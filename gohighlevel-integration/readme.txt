@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.5.6
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,14 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.6.0 =
+* Read headshots from file-upload custom fields, whose value arrives as a list
+  of URLs or {url} objects rather than a bare string.
+* Stop treating a bare filename like "headshot.jpg" as a website address.
+* Settings now reports how many cached contacts have a headshot, and when none
+  do, shows what the mapped field actually contains and which custom field keys
+  do hold values.
 
 = 1.5.6 =
 * Hide the "Search" label above the search box, keeping it for screen readers.
