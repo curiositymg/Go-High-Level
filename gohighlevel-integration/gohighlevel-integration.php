@@ -3,7 +3,7 @@
  * Plugin Name:       GoHighLevel Integration
  * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
- * Version:           1.8.0
+ * Version:           1.8.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Curiosity Marketing Group
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GHLD_VERSION', '1.8.0' );
+define( 'GHLD_VERSION', '1.8.1' );
 define( 'GHLD_FILE', __FILE__ );
 define( 'GHLD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GHLD_URL', plugin_dir_url( __FILE__ ) );
@@ -32,9 +32,33 @@ require_once GHLD_PATH . 'includes/class-ghld-rest.php';
 require_once GHLD_PATH . 'includes/class-ghld-admin.php';
 
 /**
+ * Apply one-time upgrades to stored settings.
+ *
+ * A stored value always beats a changed default, so a site that has ever saved
+ * the settings screen keeps whatever it saved. Anything that has to reach
+ * existing installs has to be migrated here.
+ *
+ * @return void
+ */
+function ghld_migrate() {
+	$applied = (int) get_option( 'ghld_migration', 0 );
+
+	if ( $applied >= 2 ) {
+		return;
+	}
+
+	// Headshots in a file-upload field only arrive via the single-contact
+	// endpoint, so full-record fetching has to be on for them to work at all.
+	GHLD_Settings::update( array( 'deep_sync' => 1 ) );
+
+	update_option( 'ghld_migration', 2 );
+}
+
+/**
  * Boot the plugin once WordPress has loaded its own pluggable pieces.
  */
 function ghld_init() {
+	ghld_migrate();
 	GHLD_Shortcode::init();
 	GHLD_Rest::init();
 

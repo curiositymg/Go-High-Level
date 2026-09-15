@@ -12,6 +12,7 @@ $ghld_options = array(
 	'ghld_contacts',
 	'ghld_custom_fields',
 	'ghld_sync_state',
+	'ghld_migration',
 );
 
 foreach ( $ghld_options as $ghld_option ) {

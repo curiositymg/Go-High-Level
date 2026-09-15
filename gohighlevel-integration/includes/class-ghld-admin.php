@@ -658,6 +658,15 @@ class GHLD_Admin {
 	 */
 	protected static function render_enrich_progress() {
 		if ( empty( GHLD_Settings::get( 'deep_sync' ) ) ) {
+			// The one setting that decides whether headshots in a file-upload
+			// field can work at all, so its being off is worth saying loudly.
+			?>
+			<p class="notice notice-warning" style="padding:8px 12px">
+				<strong><?php esc_html_e( '"Fetch full records" is off.', 'gohighlevel-integration' ); ?></strong>
+				<?php esc_html_e( 'GoHighLevel does not send file-upload fields with the contact list, so headshots stored in one cannot arrive until this is on.', 'gohighlevel-integration' ); ?>
+			</p>
+			<?php
+
 			return;
 		}
 
@@ -677,6 +686,18 @@ class GHLD_Admin {
 				esc_html( number_format_i18n( isset( $state['enrich_resolved'] ) ? (int) $state['enrich_resolved'] : 0 ) )
 			);
 			?>
+			<?php if ( ! empty( $state['enrich_remaining'] ) ) : ?>
+				<br />
+				<strong>
+					<?php
+					printf(
+						/* translators: %s: contacts still to fetch. */
+						esc_html__( '%s contacts still have no headshot — press "Sync now" again to keep going.', 'gohighlevel-integration' ),
+						esc_html( number_format_i18n( (int) $state['enrich_remaining'] ) )
+					);
+					?>
+				</strong>
+			<?php endif; ?>
 			<?php if ( empty( $state['enrich_resolved'] ) && ! empty( $state['enrich_fetched'] ) ) : ?>
 				<br />
 				<em><?php esc_html_e( 'None of them did, so the single-contact endpoint is not carrying that field either — use "Inspect a contact" on someone whose photo you have set to see what it does send.', 'gohighlevel-integration' ); ?></em>

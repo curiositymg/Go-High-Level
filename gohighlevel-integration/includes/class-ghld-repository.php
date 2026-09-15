@@ -163,11 +163,17 @@ class GHLD_Repository {
 		}
 
 		/**
-		 * Filter how many contacts are fetched individually per sync.
+		 * Filter how long a sync may spend fetching contacts individually.
 		 *
-		 * @param int $limit Contacts per run.
+		 * A time budget rather than a count: it does as much as the request can
+		 * safely afford on this host instead of a fixed number that is either
+		 * too slow to finish or too slow to survive.
+		 *
+		 * @param float $seconds Seconds per run.
 		 */
-		$limit = max( 1, (int) apply_filters( 'ghld_enrich_batch', 60 ) );
+		$seconds  = max( 1, (float) apply_filters( 'ghld_enrich_seconds', 20 ) );
+		$cap      = max( 1, (int) apply_filters( 'ghld_enrich_batch', 500 ) );
+		$deadline = microtime( true ) + $seconds;
 
 		$state    = self::state();
 		$cursor   = isset( $state['enrich_cursor'] ) ? (int) $state['enrich_cursor'] : 0;
@@ -175,7 +181,11 @@ class GHLD_Repository {
 		$resolved = 0;
 		$offset   = 0;
 
-		for ( $offset = 0; $offset < $total && $fetched < $limit; $offset++ ) {
+		for ( $offset = 0; $offset < $total; $offset++ ) {
+			if ( $fetched >= $cap || microtime( true ) >= $deadline ) {
+				break;
+			}
+
 			$index = ( $cursor + $offset ) % $total;
 
 			if ( ! empty( $contacts[ $index ]['photo'] ) || empty( $contacts[ $index ]['id'] ) ) {
@@ -200,11 +210,21 @@ class GHLD_Repository {
 			}
 		}
 
+		// How many are still waiting, so the admin can say whether pressing
+		// Sync again will achieve anything.
+		$remaining = 0;
+		foreach ( $contacts as $contact ) {
+			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) ) {
+				$remaining++;
+			}
+		}
+
 		self::update_state(
 			array(
-				'enrich_cursor'   => ( $cursor + $offset ) % $total,
-				'enrich_fetched'  => $fetched,
-				'enrich_resolved' => $resolved,
+				'enrich_cursor'    => ( $cursor + $offset ) % $total,
+				'enrich_fetched'   => $fetched,
+				'enrich_resolved'  => $resolved,
+				'enrich_remaining' => $remaining,
 			)
 		);
 
