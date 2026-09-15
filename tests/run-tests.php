@@ -746,15 +746,21 @@ ghld_ok( false === strpos( $titled_detail, 'ghld-detail-title' ), 'the modal bod
  * Primary specialty
  * ---------------------------------------------------------------------- */
 
-ghld_same( 'cf:primary_specialty', GHLD_Settings::defaults()['specialty_field'], 'the specialty maps to the primary_specialty field by default' );
+ghld_same( 'cf:primary_specialty', GHLD_Settings::defaults()['specialty_field'], 'the specialty maps to primary_specialty by default' );
+ghld_same( '', GHLD_Settings::defaults()['specialty_field_2'], 'no second specialty field is mapped by default' );
 
 $specialty_fields = array(
-	'fld_spec' => array(
-		'key'  => 'primary_specialty',
-		'name' => 'Primary Specialty',
-		'type' => 'MULTIPLE_OPTIONS',
+	'fld_spec1' => array(
+		'key'  => 'specialty_1',
+		'name' => 'Specialty 1',
+		'type' => 'TEXT',
 	),
-	'fld_cred' => array(
+	'fld_spec2' => array(
+		'key'  => 'specialty_2',
+		'name' => 'Specialty 2',
+		'type' => 'TEXT',
+	),
+	'fld_cred'  => array(
 		'key'  => 'credential',
 		'name' => 'Credential',
 		'type' => 'TEXT',
@@ -762,7 +768,15 @@ $specialty_fields = array(
 );
 
 update_option( 'ghld_custom_fields', $specialty_fields );
-$specialty_settings = array_merge( $defaults, array( 'title_field' => 'cf:credential' ) );
+$specialty_settings = array_merge(
+	$defaults,
+	array(
+		'title_field'       => 'cf:credential',
+		// Two fields joined, for sites that split specialties across them.
+		'specialty_field'   => 'cf:specialty_1',
+		'specialty_field_2' => 'cf:specialty_2',
+	)
+);
 update_option( 'ghld_settings', $specialty_settings );
 
 $bone = GHLD_Contact::normalize(
@@ -778,8 +792,12 @@ $bone = GHLD_Contact::normalize(
 				'value' => 'MD',
 			),
 			array(
-				'id'    => 'fld_spec',
-				'value' => array( 'Infectious Disease', 'Internal Medicine' ),
+				'id'    => 'fld_spec1',
+				'value' => 'Infectious Disease',
+			),
+			array(
+				'id'    => 'fld_spec2',
+				'value' => 'Internal Medicine',
 			),
 		),
 	),
@@ -787,7 +805,7 @@ $bone = GHLD_Contact::normalize(
 	$specialty_settings
 );
 
-ghld_same( 'Infectious Disease, Internal Medicine', $bone['specialty'], 'a multi-select specialty comes through as a comma-separated list' );
+ghld_same( 'Infectious Disease, Internal Medicine', $bone['specialty'], 'the two specialty fields join into one line' );
 ghld_ok( false !== strpos( $bone['search_key'], 'internal medicine' ), 'specialties are searchable' );
 
 $bone_scope  = GHLD_Shortcode::build_scope( array() );
@@ -806,7 +824,7 @@ ghld_same( 'William Bone, MD', GHLD_Shortcode::display_name( $bone, $bone_scope 
 // A field with its own place on the card must not also render as a generic row.
 $doubled = array_merge(
 	$bone_scope,
-	array( 'modal_show' => array_merge( $bone_scope['modal_show'], array( 'cf:primary_specialty', 'cf:credential' ) ) )
+	array( 'modal_show' => array_merge( $bone_scope['modal_show'], array( 'cf:specialty_1', 'cf:specialty_2', 'cf:credential' ) ) )
 );
 $doubled_detail = GHLD_Template::get(
 	'contact-detail',
@@ -816,7 +834,26 @@ $doubled_detail = GHLD_Template::get(
 	)
 );
 ghld_same( 1, substr_count( $doubled_detail, 'Infectious Disease, Internal Medicine' ), 'a mapped field is never printed twice' );
-ghld_ok( false === strpos( $doubled_detail, 'ghld-detail-label">Primary Specialty' ), 'the mapped specialty does not also appear as a labelled row' );
+ghld_ok( false === strpos( $doubled_detail, 'ghld-detail-label">Specialty 1' ), 'the mapped specialty does not also appear as a labelled row' );
+ghld_ok( false === strpos( $doubled_detail, 'ghld-detail-label">Specialty 2' ), 'neither does the second specialty field' );
+
+$one_only = GHLD_Contact::normalize(
+	array(
+		'id'           => 's2',
+		'contactName'  => 'Single Specialty',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_spec1',
+				'value' => 'Infectious Disease',
+			),
+		),
+	),
+	$specialty_fields,
+	$specialty_settings
+);
+ghld_same( 'Infectious Disease', $one_only['specialty'], 'one specialty alone leaves no trailing comma' );
+ghld_same( 'Cardiology', GHLD_Contact::join_values( array( '', 'Cardiology', '' ) ), 'empty specialty values are skipped' );
+ghld_same( 'Cardiology', GHLD_Contact::join_values( array( 'Cardiology', 'Cardiology' ) ), 'a duplicated specialty is not printed twice' );
 
 $no_specialty = array_merge( $bone_scope, array( 'modal_show' => array( 'photo', 'company' ) ) );
 $plain_detail = GHLD_Template::get(

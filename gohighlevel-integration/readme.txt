@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.2
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,15 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.7.0 =
+* New "Fetch full records" option: sync fetches each contact individually to
+  pick up custom fields the contact list leaves out — file uploads in
+  particular. Batched at 60 per sync, resuming where the last run stopped.
+* "Inspect a contact" can now target a named contact and fetches that record on
+  its own, so the two endpoints can be compared directly.
+* Optional second specialty field, joined to the first with a comma. Off unless
+  you map it.
 
 = 1.6.2 =
 * The headshot count now separates photos resolved from the mapped field from

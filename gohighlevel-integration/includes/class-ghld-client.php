@@ -142,6 +142,29 @@ class GHLD_Client {
 	}
 
 	/**
+	 * Fetch a single contact by ID.
+	 *
+	 * The single-contact endpoint returns a fuller record than the paginated
+	 * list does, which matters for field types the list omits.
+	 *
+	 * @param string $id Contact ID.
+	 * @return array|WP_Error Raw contact.
+	 */
+	public function get_contact( $id ) {
+		$id = trim( (string) $id );
+		if ( '' === $id ) {
+			return new WP_Error( 'ghld_no_contact_id', __( 'No contact ID given.', 'gohighlevel-integration' ) );
+		}
+
+		$body = $this->get( '/contacts/' . rawurlencode( $id ), array() );
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		return ( isset( $body['contact'] ) && is_array( $body['contact'] ) ) ? $body['contact'] : $body;
+	}
+
+	/**
 	 * Fetch the location's custom field definitions.
 	 *
 	 * @return array|WP_Error Map of field ID => array{key,name,type}.

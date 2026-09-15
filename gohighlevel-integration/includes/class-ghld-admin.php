@@ -130,14 +130,41 @@ class GHLD_Admin {
 		self::guard( 'ghld_inspect' );
 
 		$client = new GHLD_Client();
-		$raw    = $client->get_contacts( 1 );
+		$who    = isset( $_POST['who'] ) ? sanitize_text_field( wp_unslash( $_POST['who'] ) ) : '';
+		$cached = null;
 
-		if ( is_wp_error( $raw ) ) {
-			self::redirect( 'error', $raw->get_error_message() );
+		if ( '' !== $who ) {
+			$cached = self::find_cached_contact( $who );
+			if ( null === $cached ) {
+				self::redirect(
+					'error',
+					sprintf(
+						/* translators: %s: search term. */
+						__( 'No cached contact matches "%s". Try part of a name or an email address.', 'gohighlevel-integration' ),
+						$who
+					)
+				);
+			}
 		}
 
-		if ( empty( $raw ) ) {
-			self::redirect( 'error', __( 'GoHighLevel returned no contacts to inspect.', 'gohighlevel-integration' ) );
+		// With a named contact, ask for that record on its own: the
+		// single-contact endpoint returns fields the list can leave out.
+		if ( null !== $cached ) {
+			$raw = $client->get_contact( $cached['id'] );
+			if ( is_wp_error( $raw ) ) {
+				self::redirect( 'error', $raw->get_error_message() );
+			}
+			$source = 'detail';
+		} else {
+			$list = $client->get_contacts( 1 );
+			if ( is_wp_error( $list ) ) {
+				self::redirect( 'error', $list->get_error_message() );
+			}
+			if ( empty( $list ) ) {
+				self::redirect( 'error', __( 'GoHighLevel returned no contacts to inspect.', 'gohighlevel-integration' ) );
+			}
+			$raw    = $list[0];
+			$source = 'list';
 		}
 
 		$fields = $client->get_custom_fields();
@@ -145,13 +172,39 @@ class GHLD_Admin {
 		set_transient(
 			'ghld_inspect',
 			array(
-				'contact' => $raw[0],
+				'contact' => $raw,
 				'fields'  => is_wp_error( $fields ) ? array() : $fields,
+				'source'  => $source,
+				'name'    => ( null !== $cached ) ? $cached['name'] : '',
+				'cached'  => ( null !== $cached && isset( $cached['custom'] ) ) ? $cached['custom'] : array(),
 			),
 			5 * MINUTE_IN_SECONDS
 		);
 
-		self::redirect( 'success', __( 'Fetched one contact. Its raw payload is shown below.', 'gohighlevel-integration' ) );
+		self::redirect( 'success', __( 'Fetched the contact. Its raw payload is shown below.', 'gohighlevel-integration' ) );
+	}
+
+	/**
+	 * Find a cached contact by name or email fragment.
+	 *
+	 * @param string $who Search term.
+	 * @return array|null
+	 */
+	protected static function find_cached_contact( $who ) {
+		$contacts = get_option( GHLD_Repository::OPTION_CONTACTS, array() );
+		$needle   = GHLD_Contact::lower( $who );
+
+		foreach ( (array) $contacts as $contact ) {
+			if ( empty( $contact['id'] ) ) {
+				continue;
+			}
+			$haystack = GHLD_Contact::lower( $contact['name'] . ' ' . $contact['email'] );
+			if ( false !== strpos( $haystack, $needle ) ) {
+				return $contact;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -314,6 +367,18 @@ class GHLD_Admin {
 				<h2><?php esc_html_e( 'Which contacts', 'gohighlevel-integration' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Fetch full records', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[deep_sync]" value="1" <?php checked( ! empty( $settings['deep_sync'] ) ); ?> />
+								<?php esc_html_e( 'Fetch each contact individually to pick up custom fields the contact list leaves out', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Turn this on if a mapped custom field — a file upload in particular — is filled in inside GoHighLevel but arrives empty here. It is slow, so each sync fetches a batch of 60 and the next sync carries on where it left off; contacts that already have a headshot are skipped. Press "Sync now" a few times, or let the hourly sync work through them.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-include"><?php esc_html_e( 'Only include tags', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ghld-include" name="<?php echo esc_attr( $name ); ?>[include_tags]" value="<?php echo esc_attr( $settings['include_tags'] ); ?>" />
@@ -369,7 +434,17 @@ class GHLD_Admin {
 								<option value="" <?php selected( $settings['specialty_field'], '' ); ?>><?php esc_html_e( '— none —', 'gohighlevel-integration' ); ?></option>
 								<?php self::field_options( $fields, $settings['specialty_field'] ); ?>
 							</select>
-							<p class="description"><?php esc_html_e( 'Printed under the name in the detail modal. A multi-select field comes through as a comma-separated list, e.g. "Infectious Disease, Internal Medicine".', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Printed under the name in the detail modal.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="ghld-specialty-2"><?php esc_html_e( 'Second specialty', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-specialty-2" name="<?php echo esc_attr( $name ); ?>[specialty_field_2]">
+								<option value="" <?php selected( $settings['specialty_field_2'], '' ); ?>><?php esc_html_e( '— none —', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['specialty_field_2'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Joined to the first with a comma, so two fields read as one line: "Infectious Disease, Internal Medicine".', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -529,6 +604,7 @@ class GHLD_Admin {
 				<?php echo esc_html( number_format_i18n( count( GHLD_Repository::custom_fields() ) ) ); ?>
 			</p>
 			<?php self::render_photo_diagnostics(); ?>
+			<?php self::render_enrich_progress(); ?>
 			<?php if ( ! empty( $state['error'] ) ) : ?>
 				<p class="notice notice-error" style="padding:8px 12px">
 					<strong><?php esc_html_e( 'Last error:', 'gohighlevel-integration' ); ?></strong>
@@ -541,9 +617,8 @@ class GHLD_Admin {
 			<p>
 				<?php
 				$ghld_actions = array(
-					'ghld_sync'    => __( 'Sync now', 'gohighlevel-integration' ),
-					'ghld_test'    => __( 'Test connection', 'gohighlevel-integration' ),
-					'ghld_inspect' => __( 'Inspect a contact', 'gohighlevel-integration' ),
+					'ghld_sync' => __( 'Sync now', 'gohighlevel-integration' ),
+					'ghld_test' => __( 'Test connection', 'gohighlevel-integration' ),
 				);
 				foreach ( $ghld_actions as $action => $label ) :
 					?>
@@ -554,7 +629,49 @@ class GHLD_Admin {
 					</form>
 				<?php endforeach; ?>
 			</p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="ghld_inspect" />
+				<?php wp_nonce_field( 'ghld_inspect' ); ?>
+				<label for="ghld-who"><?php esc_html_e( 'Inspect a contact:', 'gohighlevel-integration' ); ?></label>
+				<input type="text" id="ghld-who" name="who" class="regular-text" placeholder="<?php esc_attr_e( 'Name or email — blank for the first contact', 'gohighlevel-integration' ); ?>" />
+				<button type="submit" class="button"><?php esc_html_e( 'Inspect', 'gohighlevel-integration' ); ?></button>
+				<p class="description"><?php esc_html_e( 'Naming a contact fetches that record on its own, which returns fields the contact list can leave out.', 'gohighlevel-integration' ); ?></p>
+			</form>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Report on the last batch of individually fetched contacts.
+	 *
+	 * @return void
+	 */
+	protected static function render_enrich_progress() {
+		if ( empty( GHLD_Settings::get( 'deep_sync' ) ) ) {
+			return;
+		}
+
+		$state = GHLD_Repository::state();
+		if ( ! isset( $state['enrich_fetched'] ) ) {
+			return;
+		}
+
+		?>
+		<p>
+			<strong><?php esc_html_e( 'Last full-record batch:', 'gohighlevel-integration' ); ?></strong>
+			<?php
+			printf(
+				/* translators: 1: contacts fetched, 2: headshots found. */
+				esc_html__( '%1$s contacts fetched individually, %2$s of them gave up a headshot.', 'gohighlevel-integration' ),
+				esc_html( number_format_i18n( (int) $state['enrich_fetched'] ) ),
+				esc_html( number_format_i18n( isset( $state['enrich_resolved'] ) ? (int) $state['enrich_resolved'] : 0 ) )
+			);
+			?>
+			<?php if ( empty( $state['enrich_resolved'] ) && ! empty( $state['enrich_fetched'] ) ) : ?>
+				<br />
+				<em><?php esc_html_e( 'None of them did, so the single-contact endpoint is not carrying that field either — use "Inspect a contact" on someone whose photo you have set to see what it does send.', 'gohighlevel-integration' ); ?></em>
+			<?php endif; ?>
+		</p>
 		<?php
 	}
 

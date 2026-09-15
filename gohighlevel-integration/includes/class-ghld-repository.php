@@ -112,6 +112,10 @@ class GHLD_Repository {
 			}
 		}
 
+		if ( ! empty( $settings['deep_sync'] ) ) {
+			$contacts = self::enrich( $contacts, $client, $fields, $settings );
+		}
+
 		update_option( self::OPTION_CONTACTS, $contacts, false );
 		self::update_state(
 			array(
@@ -132,6 +136,77 @@ class GHLD_Repository {
 		do_action( 'ghld_after_sync', $contacts );
 
 		return count( $contacts );
+	}
+
+	/**
+	 * Re-fetch contacts individually to pick up fields the list leaves out.
+	 *
+	 * GoHighLevel's paginated contact list does not always carry every custom
+	 * field value — file uploads in particular — while the single-contact
+	 * endpoint does. Fetching all of them at once would take longer than a
+	 * request is allowed to run, so each sync walks a batch, and a cursor keeps
+	 * the next one going where this left off. Contacts that already have a
+	 * photo are skipped, so a full pass costs less each time round.
+	 *
+	 * @param array       $contacts Normalized contacts.
+	 * @param GHLD_Client $client   API client.
+	 * @param array       $fields   Custom field definitions.
+	 * @param array       $settings Plugin settings.
+	 * @return array
+	 */
+	protected static function enrich( array $contacts, GHLD_Client $client, array $fields, array $settings ) {
+		$total = count( $contacts );
+		if ( 0 === $total ) {
+			return $contacts;
+		}
+
+		/**
+		 * Filter how many contacts are fetched individually per sync.
+		 *
+		 * @param int $limit Contacts per run.
+		 */
+		$limit = max( 1, (int) apply_filters( 'ghld_enrich_batch', 60 ) );
+
+		$state    = self::state();
+		$cursor   = isset( $state['enrich_cursor'] ) ? (int) $state['enrich_cursor'] : 0;
+		$fetched  = 0;
+		$resolved = 0;
+		$offset   = 0;
+
+		for ( $offset = 0; $offset < $total && $fetched < $limit; $offset++ ) {
+			$index = ( $cursor + $offset ) % $total;
+
+			if ( ! empty( $contacts[ $index ]['photo'] ) || empty( $contacts[ $index ]['id'] ) ) {
+				continue;
+			}
+
+			$raw = $client->get_contact( $contacts[ $index ]['id'] );
+			$fetched++;
+
+			if ( is_wp_error( $raw ) ) {
+				continue;
+			}
+
+			$full = GHLD_Contact::normalize( $raw, $fields, $settings );
+
+			// Only take the fuller record when it actually carries more.
+			if ( ! empty( $full['photo'] ) || count( $full['custom'] ) > count( $contacts[ $index ]['custom'] ) ) {
+				$contacts[ $index ] = $full;
+				if ( ! empty( $full['photo'] ) ) {
+					$resolved++;
+				}
+			}
+		}
+
+		self::update_state(
+			array(
+				'enrich_cursor'   => ( $cursor + $offset ) % $total,
+				'enrich_fetched'  => $fetched,
+				'enrich_resolved' => $resolved,
+			)
+		);
+
+		return $contacts;
 	}
 
 	/**

@@ -29,11 +29,13 @@ class GHLD_Settings {
 			'api_token'     => '',
 			'location_id'   => '',
 			'cache_minutes' => 60,
+			'deep_sync'     => 0,
 			'include_tags'  => 'member - physician',
 			'exclude_tags'  => '',
 			'photo_field'   => 'cf:member_profile_photo',
 			'title_field'   => '',
 			'specialty_field' => 'cf:primary_specialty',
+			'specialty_field_2' => '',
 			'company_field' => 'cf:organization_name',
 			'fax_field'     => 'cf:fax',
 			'bio_field'     => '',
@@ -204,11 +206,13 @@ class GHLD_Settings {
 		$clean['photo_field']   = isset( $input['photo_field'] ) ? sanitize_text_field( $input['photo_field'] ) : '';
 		$clean['title_field']   = isset( $input['title_field'] ) ? sanitize_text_field( $input['title_field'] ) : '';
 		$clean['specialty_field'] = isset( $input['specialty_field'] ) ? sanitize_text_field( $input['specialty_field'] ) : '';
+		$clean['specialty_field_2'] = isset( $input['specialty_field_2'] ) ? sanitize_text_field( $input['specialty_field_2'] ) : '';
 		$clean['company_field'] = isset( $input['company_field'] ) ? sanitize_text_field( $input['company_field'] ) : '';
 		$clean['fax_field']     = isset( $input['fax_field'] ) ? sanitize_text_field( $input['fax_field'] ) : '';
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
+		$clean['deep_sync']     = empty( $input['deep_sync'] ) ? 0 : 1;
 		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );
 		$clean['columns']       = isset( $input['columns'] ) ? min( 6, max( 1, (int) $input['columns'] ) ) : 3;
 		$clean['per_page']      = isset( $input['per_page'] ) ? min( 200, max( 1, (int) $input['per_page'] ) ) : 24;

@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '3';
+	const DERIVED_VERSION = '4';
 
 	/**
 	 * Normalize one contact.
@@ -98,6 +98,25 @@ class GHLD_Contact {
 		 * @param array $raw     Raw API payload.
 		 */
 		return apply_filters( 'ghld_normalize_contact', $contact, $raw );
+	}
+
+	/**
+	 * Join non-empty values into one comma-separated line.
+	 *
+	 * @param array $values Values to join.
+	 * @return string
+	 */
+	public static function join_values( array $values ) {
+		$parts = array();
+
+		foreach ( $values as $value ) {
+			$value = trim( (string) $value );
+			if ( '' !== $value && ! in_array( $value, $parts, true ) ) {
+				$parts[] = $value;
+			}
+		}
+
+		return implode( ', ', $parts );
 	}
 
 	/**
@@ -339,7 +358,14 @@ class GHLD_Contact {
 
 		$contact['fax']       = self::mapped_value( $settings, 'fax_field', $custom, $contact );
 		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
-		$contact['specialty'] = self::mapped_value( $settings, 'specialty_field', $custom, $contact );
+		// Specialties live in two separate single-line fields; they read as one
+		// comma-separated line ("Infectious Disease, Internal Medicine").
+		$contact['specialty'] = self::join_values(
+			array(
+				self::mapped_value( $settings, 'specialty_field', $custom, $contact ),
+				self::mapped_value( $settings, 'specialty_field_2', $custom, $contact ),
+			)
+		);
 		$contact['bio']   = self::mapped_value( $settings, 'bio_field', $custom, $contact );
 		$contact['photo'] = self::photo( $contact, $settings );
 
@@ -356,7 +382,7 @@ class GHLD_Contact {
 	 */
 	public static function mapping_hash( array $settings ) {
 		$relevant = array( 'derived' => self::DERIVED_VERSION );
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'company_field', 'fax_field', 'bio_field', 'use_gravatar' ) as $key ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
 
