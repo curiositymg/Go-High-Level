@@ -82,7 +82,8 @@ never appears in a database dump or in the settings form.
 | `orderby` / `order` | `first_name` / `asc` | `first_name` (the name as printed), `name` (surname), `company` or `date_added`; `asc` or `desc`. |
 | `layout` | `grid` | `grid` or `list`. |
 | `name_format` | `name_title` | `name_title` prints "Emily Billingsley, MD"; `name` puts the title on its own line. |
-| `modal` | `yes` | `no` makes cards non-clickable and ships no detail markup. |
+| `view` | `page` | `page` gives each contact their own URL; `modal` opens a dialog over the grid. |
+| `modal` | `yes` | With `view="modal"`, `no` makes cards non-clickable and ships no detail markup. |
 | `modal_show` | setting | What the detail modal lists — same element names as `show`. |
 | `search` | — | A search term always applied to this directory, on top of whatever a visitor types. |
 | `empty` | — | Message shown when nothing matches. |
@@ -113,7 +114,13 @@ lists the discovered fields by name after the first sync.
 - **Re-mapping is free.** Changing which field holds the photo/title/bio
   re-derives those values from the cached contacts; only credential changes force
   a re-fetch.
-- **Detail modal.** Each card carries its own detail panel, rendered server-side
+- **Contact pages.** By default a card is a link to that contact's own page on
+  the same directory page (`?ghld_contact=<slug>`), rendered by
+  `templates/contact-profile.php`. Slugs come from the name, numbered on
+  collision, and are assigned in API order so a shared link keeps working. The
+  tag scope is enforced on lookup: a contact the directory doesn't list has no
+  page, whatever the URL says.
+- **Detail modal.** With `view="modal"`, each card carries its own detail panel, rendered server-side
   by `templates/contact-detail.php` and hidden until the card is clicked. Opening
   a contact costs no request, survives the grid being swapped out by a filter,
   and can never reach a contact outside the directory's scope. Without
@@ -172,7 +179,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 173 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 193 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

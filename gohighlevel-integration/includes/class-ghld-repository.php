@@ -137,6 +137,7 @@ class GHLD_Repository {
 		}
 
 		$contacts = self::localize_photos( $contacts );
+		$contacts = self::assign_slugs( $contacts );
 
 		update_option( self::OPTION_CONTACTS, $contacts, false );
 		self::update_state(
@@ -339,6 +340,64 @@ class GHLD_Repository {
 		}
 
 		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CRON_ENRICH );
+	}
+
+	/**
+	 * Give every contact a unique, readable slug for its own page.
+	 *
+	 * Names repeat in a directory this size, so a second Robert Bain becomes
+	 * robert-bain-2. Slugs are assigned in the order the API returns contacts,
+	 * which is stable between syncs, so a shared link keeps working.
+	 *
+	 * @param array $contacts Normalized contacts.
+	 * @return array
+	 */
+	protected static function assign_slugs( array $contacts ) {
+		$taken = array();
+
+		foreach ( $contacts as $index => $contact ) {
+			$base = sanitize_title( $contact['name'] );
+			if ( '' === $base ) {
+				$base = 'contact';
+			}
+
+			$slug   = $base;
+			$suffix = 1;
+			while ( isset( $taken[ $slug ] ) ) {
+				$suffix++;
+				$slug = $base . '-' . $suffix;
+			}
+
+			$taken[ $slug ]             = true;
+			$contacts[ $index ]['slug'] = $slug;
+		}
+
+		return $contacts;
+	}
+
+	/**
+	 * Find a cached contact by slug, within a directory's scope.
+	 *
+	 * Scope is enforced here too: a contact the directory does not list has no
+	 * page, however the URL is typed.
+	 *
+	 * @param string $slug  Contact slug.
+	 * @param array  $scope Resolved scope.
+	 * @return array|null
+	 */
+	public static function find_by_slug( $slug, array $scope ) {
+		$slug = sanitize_title( (string) $slug );
+		if ( '' === $slug ) {
+			return null;
+		}
+
+		foreach ( self::apply_scope( self::get_contacts(), $scope ) as $contact ) {
+			if ( isset( $contact['slug'] ) && $contact['slug'] === $slug ) {
+				return $contact;
+			}
+		}
+
+		return null;
 	}
 
 	/**

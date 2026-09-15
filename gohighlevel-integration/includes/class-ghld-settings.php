@@ -44,6 +44,7 @@ class GHLD_Settings {
 			'filters'       => array( 'search', 'tag' ),
 			'show'          => array( 'photo', 'title', 'company', 'location', 'tags' ),
 			'name_format'   => 'name_title',
+			'view'          => 'page',
 			'modal'         => 1,
 			'modal_show'    => array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'phone', 'fax', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
@@ -213,6 +214,7 @@ class GHLD_Settings {
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
+		$clean['view']          = self::sanitize_choice( isset( $input['view'] ) ? $input['view'] : '', self::view_choices(), 'page' );
 		$clean['deep_sync']     = empty( $input['deep_sync'] ) ? 0 : 1;
 		$clean['cache_photos']  = empty( $input['cache_photos'] ) ? 0 : 1;
 		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );
@@ -234,6 +236,18 @@ class GHLD_Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * What happens when a card is opened.
+	 *
+	 * @return array
+	 */
+	public static function view_choices() {
+		return array(
+			'page'  => __( 'Open the contact\'s own page', 'gohighlevel-integration' ),
+			'modal' => __( 'Open a modal over the directory', 'gohighlevel-integration' ),
+		);
 	}
 
 	/**

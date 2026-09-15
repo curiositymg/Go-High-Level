@@ -207,6 +207,38 @@
 		} );
 
 		initModal( root );
+		initCardLinks( root );
+	}
+
+	/**
+	 * Make the whole card follow its name link.
+	 *
+	 * The link itself is what carries the destination, so the card stays
+	 * crawlable and openable in a new tab; this only widens the target.
+	 *
+	 * @param {HTMLElement} root Directory wrapper.
+	 */
+	function initCardLinks( root ) {
+		root.addEventListener( 'click', function ( event ) {
+			// Anything already interactive keeps its own behaviour.
+			if ( event.target.closest( 'a' ) || event.target.closest( 'button' ) ) {
+				return;
+			}
+
+			var card = event.target.closest( '.ghld-card' );
+
+			if ( ! card ) {
+				return;
+			}
+
+			var link = card.querySelector( '[data-ghld-profile-link]' );
+
+			if ( ! link ) {
+				return;
+			}
+
+			window.location.href = link.href;
+		} );
 	}
 
 	/**

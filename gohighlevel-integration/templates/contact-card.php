@@ -12,7 +12,12 @@ defined( 'ABSPATH' ) || exit;
 
 $ghld_contact = $data['contact'];
 $ghld_show    = (array) $data['scope']['show'];
-$ghld_modal   = ! empty( $data['scope']['modal'] );
+// A card either links to the contact's own page, or opens the dialog.
+$ghld_view    = isset( $data['scope']['view'] ) ? $data['scope']['view'] : 'page';
+$ghld_linked  = ( 'page' === $ghld_view );
+$ghld_modal   = ! $ghld_linked && ! empty( $data['scope']['modal'] );
+$ghld_href    = $ghld_linked ? GHLD_Shortcode::profile_url( $ghld_contact ) : '';
+$ghld_linked  = $ghld_linked && '' !== $ghld_href;
 
 // When the directory prints "Name, Title", the title rides on the name line
 // instead of taking a line of its own.
@@ -30,7 +35,7 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 };
 ?>
 <article
-	class="ghld-card<?php echo $ghld_modal ? ' ghld-card-clickable' : ''; ?>"
+	class="ghld-card<?php echo ( $ghld_modal || $ghld_linked ) ? ' ghld-card-clickable' : ''; ?>"
 	data-ghld-contact="<?php echo esc_attr( $ghld_contact['id'] ); ?>"
 	data-ghld-name="<?php echo esc_attr( $ghld_display_name ); ?>"
 >
@@ -55,7 +60,15 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 
 	<div class="ghld-card-body">
 		<h3 class="ghld-name">
-			<?php if ( $ghld_modal ) : ?>
+			<?php if ( $ghld_linked ) : ?>
+				<a class="ghld-name-link" href="<?php echo esc_url( $ghld_href ); ?>" data-ghld-profile-link>
+					<?php echo esc_html( $ghld_contact['name'] ); ?><?php
+					if ( '' !== $ghld_inline_title ) :
+						?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
+					endif;
+					?>
+				</a>
+			<?php elseif ( $ghld_modal ) : ?>
 				<button type="button" class="ghld-name-button" data-ghld-open>
 					<?php echo esc_html( $ghld_contact['name'] ); ?><?php
 					if ( '' !== $ghld_inline_title ) :

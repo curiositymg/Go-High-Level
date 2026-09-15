@@ -628,11 +628,22 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-view"><?php esc_html_e( 'Opening a contact', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-view" name="<?php echo esc_attr( $name ); ?>[view]">
+								<?php foreach ( GHLD_Settings::view_choices() as $ghld_value => $ghld_label ) : ?>
+									<option value="<?php echo esc_attr( $ghld_value ); ?>" <?php selected( $settings['view'], $ghld_value ); ?>><?php echo esc_html( $ghld_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'A contact page is a normal, shareable URL on the directory page — good for linking to a physician directly, and visible to search engines. The modal keeps people on the grid.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Detail modal', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>
 								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[modal]" value="1" <?php checked( ! empty( $settings['modal'] ) ); ?> />
-								<?php esc_html_e( 'Open a contact\'s full details when their card is clicked', 'gohighlevel-integration' ); ?>
+								<?php esc_html_e( 'Open a contact\'s full details when their card is clicked (only used when "Opening a contact" is set to the modal)', 'gohighlevel-integration' ); ?>
 							</label>
 						</td>
 					</tr>

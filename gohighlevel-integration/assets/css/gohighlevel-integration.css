@@ -616,3 +616,45 @@
 .ghld-directory .ghld-detail-row {
 	text-align: left;
 }
+
+
+/* Contact pages ----------------------------------------------------------- */
+
+.ghld-name-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.ghld-name-link:hover,
+.ghld-name-link:focus-visible {
+	text-decoration: underline;
+}
+
+.ghld-profile-back {
+	margin: 0 0 1.5rem;
+	font-size: 0.9rem;
+}
+
+.ghld-back-link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.ghld-back-link:hover,
+.ghld-back-link:focus-visible {
+	text-decoration: underline;
+}
+
+.ghld-profile-name {
+	margin: 0 0 1.25rem;
+	line-height: 1.2;
+}
+
+.ghld-profile .ghld-detail-specialty {
+	margin-top: -0.75rem;
+}
+
+/* A page has more room than a dialog, so the headshot can be larger. */
+.ghld-profile .ghld-avatar-large {
+	--ghld-avatar-size: 11rem;
+}

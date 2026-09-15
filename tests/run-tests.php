@@ -600,11 +600,12 @@ ghld_same( 'Amanda Aronchick', $named['name'], 'a properly cased name wins over 
  * Detail modal
  * ---------------------------------------------------------------------- */
 
-$card_html = GHLD_Template::get(
+$modal_scope = array_merge( $default_scope, array( 'view' => 'modal' ) );
+$card_html   = GHLD_Template::get(
 	'contact-card',
 	array(
 		'contact' => $franklin,
-		'scope'   => $default_scope,
+		'scope'   => $modal_scope,
 	)
 );
 
@@ -614,7 +615,7 @@ ghld_ok( false !== strpos( $card_html, 'data-ghld-detail' ), 'each card carries 
 ghld_ok( false !== strpos( $card_html, 'data-ghld-name="Rosalind Franklin"' ), 'the card names the contact for the dialog title' );
 ghld_ok( false !== strpos( $card_html, 'data-ghld-initials="RF"' ), 'the headshot carries initials to fall back to if it fails to load' );
 
-$inert_scope = array_merge( $default_scope, array( 'modal' => false ) );
+$inert_scope = array_merge( $modal_scope, array( 'modal' => false ) );
 $inert_html  = GHLD_Template::get(
 	'contact-card',
 	array(
@@ -1220,6 +1221,83 @@ $richer = GHLD_Contact::normalize(
 );
 $kept = ghld_call_protected( 'GHLD_Repository', 'carry_over', array( $richer, $enriched, $photo_settings ) );
 ghld_same( count( $richer['custom'] ), count( $kept['custom'] ), 'a fresher, fuller record is not overwritten by the cached one' );
+
+/* -------------------------------------------------------------------------
+ * A contact's own page
+ * ---------------------------------------------------------------------- */
+
+ghld_same( 'page', GHLD_Settings::defaults()['view'], 'cards open a contact page by default' );
+ghld_same( 'page', GHLD_Shortcode::build_scope( array() )['view'], 'and the shortcode inherits that' );
+ghld_same( 'modal', GHLD_Shortcode::build_scope( array( 'view' => 'modal' ) )['view'], 'the shortcode can ask for the modal instead' );
+ghld_same( 'page', GHLD_Shortcode::build_scope( array( 'view' => 'nonsense' ) )['view'], 'an unknown view falls back to the page' );
+
+$slugged = ghld_call_protected(
+	'GHLD_Repository',
+	'assign_slugs',
+	array(
+		array(
+			array( 'name' => 'Robert Bain' ),
+			array( 'name' => 'Ayman Aboulela' ),
+			array( 'name' => 'Robert Bain' ),
+			array( 'name' => '' ),
+		),
+	)
+);
+
+ghld_same( 'robert-bain', $slugged[0]['slug'], 'a contact slug comes from the name' );
+ghld_same( 'ayman-aboulela', $slugged[1]['slug'], 'names are slugified' );
+ghld_same( 'robert-bain-2', $slugged[2]['slug'], 'a repeated name gets a numbered slug' );
+ghld_same( 'contact', $slugged[3]['slug'], 'a nameless contact still gets a slug' );
+
+$linked        = $franklin;
+$linked['slug'] = 'rosalind-franklin';
+
+ghld_same( '?ghld_contact=rosalind-franklin', GHLD_Shortcode::profile_url( $linked ), 'the profile URL hangs off the directory page' );
+ghld_same( '', GHLD_Shortcode::profile_url( array( 'name' => 'No Slug' ) ), 'a contact with no slug has no page' );
+
+$page_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $linked,
+		'scope'   => $default_scope,
+	)
+);
+
+ghld_ok( false !== strpos( $page_card, 'href="?ghld_contact=rosalind-franklin"' ), 'the card links to the contact page' );
+ghld_ok( false !== strpos( $page_card, 'data-ghld-profile-link' ), 'the link is marked for the whole-card click' );
+ghld_ok( false === strpos( $page_card, 'data-ghld-open' ), 'no modal trigger is rendered in page mode' );
+ghld_ok( false === strpos( $page_card, 'data-ghld-detail' ), 'and no hidden detail panel is shipped' );
+
+$profile = GHLD_Template::get(
+	'contact-profile',
+	array(
+		'contact' => $linked,
+		'scope'   => $default_scope,
+		'back'    => '/directory/',
+	)
+);
+
+ghld_ok( false !== strpos( $profile, '<h1 class="ghld-profile-name">Rosalind Franklin</h1>' ), 'the contact page leads with the name' );
+ghld_ok( false !== strpos( $profile, 'href="/directory/"' ), 'and links back to the directory' );
+ghld_ok( false !== strpos( $profile, '12 Clinic Way' ), 'the page carries the full details' );
+
+// The scope has to hold on a URL as much as it does on the grid.
+GHLD_Repository::flush();
+update_option( 'ghld_settings', $defaults );
+update_option( 'ghld_contacts', ghld_call_protected( 'GHLD_Repository', 'assign_slugs', array( $normalized ) ) );
+update_option(
+	'ghld_sync_state',
+	array(
+		'synced_at' => time(),
+		'count'     => count( $normalized ),
+		'mapping'   => GHLD_Contact::mapping_hash( $defaults ),
+	)
+);
+
+$physician_scope = GHLD_Shortcode::build_scope( array() );
+ghld_ok( null !== GHLD_Repository::find_by_slug( 'rosalind-franklin', $physician_scope ), 'a listed contact resolves by slug' );
+ghld_ok( null === GHLD_Repository::find_by_slug( 'office-manager', $physician_scope ), 'a contact outside the scope has no page, whatever the URL says' );
+ghld_ok( null === GHLD_Repository::find_by_slug( 'nobody-at-all', $physician_scope ), 'an unknown slug resolves to nothing' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

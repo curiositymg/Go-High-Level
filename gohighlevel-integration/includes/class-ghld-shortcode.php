@@ -77,11 +77,28 @@ class GHLD_Shortcode {
 		$scope    = self::build_scope( is_array( $atts ) ? $atts : array() );
 		$instance = self::register_instance( $scope );
 
+		self::enqueue_assets();
+
+		// A contact in the URL replaces the grid with that contact's page.
+		$requested = self::requested_slug();
+		if ( '' !== $requested ) {
+			$contact = GHLD_Repository::find_by_slug( $requested, $scope );
+
+			if ( null !== $contact ) {
+				return GHLD_Template::get(
+					'contact-profile',
+					array(
+						'contact' => $contact,
+						'scope'   => $scope,
+						'back'    => self::directory_url(),
+					)
+				);
+			}
+		}
+
 		// $_GET drives the no-JS fallback; every value is sanitized in parse_request().
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$request = self::parse_request( wp_unslash( $_GET ), $scope );
-
-		self::enqueue_assets();
 
 		$rendered = self::render_results( $scope, $request );
 
@@ -99,6 +116,54 @@ class GHLD_Shortcode {
 				'dom_id'     => 'ghld-' . $instance,
 			)
 		);
+	}
+
+	/**
+	 * The contact slug asked for in the URL, if any.
+	 *
+	 * @return string
+	 */
+	public static function requested_slug() {
+		$key = self::QUERY_PREFIX . 'contact';
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET[ $key ] ) && is_scalar( $_GET[ $key ] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return sanitize_title( wp_unslash( $_GET[ $key ] ) );
+		}
+
+		$query_var = get_query_var( $key );
+
+		return is_scalar( $query_var ) ? sanitize_title( (string) $query_var ) : '';
+	}
+
+	/**
+	 * Link to one contact's page.
+	 *
+	 * Relative, like the pagination links, so it resolves against whichever
+	 * page carries the shortcode — including when the markup is rendered for
+	 * the REST endpoint, where there is no current page to build from.
+	 *
+	 * @param array $contact Normalized contact.
+	 * @return string
+	 */
+	public static function profile_url( array $contact ) {
+		if ( empty( $contact['slug'] ) ) {
+			return '';
+		}
+
+		return '?' . http_build_query( array( self::QUERY_PREFIX . 'contact' => $contact['slug'] ) );
+	}
+
+	/**
+	 * Link back to the directory itself.
+	 *
+	 * @return string
+	 */
+	public static function directory_url() {
+		$path = wp_parse_url( home_url( add_query_arg( array() ) ), PHP_URL_PATH );
+
+		return ( is_string( $path ) && '' !== $path ) ? $path : '/';
 	}
 
 	/**
@@ -183,6 +248,7 @@ class GHLD_Shortcode {
 				'filters'      => implode( ',', (array) $settings['filters'] ),
 				'show'         => implode( ',', (array) $settings['show'] ),
 				'name_format'  => $settings['name_format'],
+				'view'         => $settings['view'],
 				'modal'        => $settings['modal'] ? 'yes' : 'no',
 				'modal_show'   => implode( ',', (array) $settings['modal_show'] ),
 				'orderby'      => $settings['orderby'],
@@ -212,6 +278,7 @@ class GHLD_Shortcode {
 			'filters'      => array_values( array_intersect( $filters, self::allowed_filters() ) ),
 			'show'         => array_values( array_intersect( GHLD_Settings::to_list( $atts['show'] ), self::allowed_show() ) ),
 			'name_format'  => GHLD_Settings::sanitize_choice( $atts['name_format'], GHLD_Settings::name_format_choices(), 'name_title' ),
+			'view'         => GHLD_Settings::sanitize_choice( $atts['view'], GHLD_Settings::view_choices(), 'page' ),
 			'modal'        => self::is_truthy( $atts['modal'] ),
 			'modal_show'   => array_values( array_intersect( GHLD_Settings::to_list( $atts['modal_show'] ), self::allowed_show() ) ),
 			'columns'      => min( 6, max( 1, (int) $atts['columns'] ) ),

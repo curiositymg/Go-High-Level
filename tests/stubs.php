@@ -353,6 +353,62 @@ function sanitize_key( $value ) {
 }
 
 /**
+ * Slug sanitization.
+ *
+ * @param string $value Value.
+ * @return string
+ */
+function sanitize_title( $value ) {
+	$value = strtolower( trim( (string) $value ) );
+	$value = preg_replace( '/[^a-z0-9]+/', '-', $value );
+
+	return trim( (string) $value, '-' );
+}
+
+/**
+ * Query var reader.
+ *
+ * @param string $name    Query var.
+ * @param mixed  $default Default.
+ * @return mixed
+ */
+function get_query_var( $name, $default = '' ) {
+	unset( $name );
+
+	return $default;
+}
+
+/**
+ * Home URL.
+ *
+ * @param string $path Path.
+ * @return string
+ */
+function home_url( $path = '' ) {
+	return 'https://example.test' . $path;
+}
+
+/**
+ * Current-request query arguments.
+ *
+ * @return string
+ */
+function add_query_arg() {
+	return '/directory/';
+}
+
+/**
+ * URL parser.
+ *
+ * @param string $url       URL.
+ * @param int    $component Component.
+ * @return mixed
+ */
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( $url, $component );
+}
+
+/**
  * File name sanitization.
  *
  * @param string $value Value.
