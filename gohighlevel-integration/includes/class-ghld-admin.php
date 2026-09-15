@@ -26,6 +26,7 @@ class GHLD_Admin {
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_post_ghld_sync', array( __CLASS__, 'handle_sync' ) );
 		add_action( 'admin_post_ghld_test', array( __CLASS__, 'handle_test' ) );
+		add_action( 'admin_post_ghld_inspect', array( __CLASS__, 'handle_inspect' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
@@ -116,6 +117,92 @@ class GHLD_Admin {
 	}
 
 	/**
+	 * Fetch one contact and keep its raw payload for inspection.
+	 *
+	 * When a mapped field produces nothing, the question is what GoHighLevel
+	 * actually sent — whether custom fields come back on the contact list at
+	 * all, under which IDs, and in what shape. Guessing at that from the front
+	 * end is hopeless; this shows it.
+	 *
+	 * @return void
+	 */
+	public static function handle_inspect() {
+		self::guard( 'ghld_inspect' );
+
+		$client = new GHLD_Client();
+		$raw    = $client->get_contacts( 1 );
+
+		if ( is_wp_error( $raw ) ) {
+			self::redirect( 'error', $raw->get_error_message() );
+		}
+
+		if ( empty( $raw ) ) {
+			self::redirect( 'error', __( 'GoHighLevel returned no contacts to inspect.', 'gohighlevel-integration' ) );
+		}
+
+		$fields = $client->get_custom_fields();
+
+		set_transient(
+			'ghld_inspect',
+			array(
+				'contact' => $raw[0],
+				'fields'  => is_wp_error( $fields ) ? array() : $fields,
+			),
+			5 * MINUTE_IN_SECONDS
+		);
+
+		self::redirect( 'success', __( 'Fetched one contact. Its raw payload is shown below.', 'gohighlevel-integration' ) );
+	}
+
+	/**
+	 * Print the raw payload captured by handle_inspect().
+	 *
+	 * @return void
+	 */
+	protected static function render_inspection() {
+		$data = get_transient( 'ghld_inspect' );
+
+		if ( ! is_array( $data ) || empty( $data['contact'] ) ) {
+			return;
+		}
+
+		$contact = $data['contact'];
+		$custom  = array();
+		foreach ( array( 'customFields', 'customField' ) as $property ) {
+			if ( isset( $contact[ $property ] ) ) {
+				$custom = $contact[ $property ];
+				break;
+			}
+		}
+
+		?>
+		<details open style="margin:1em 0;padding:1em;border:1px solid #c3c4c7;background:#fff">
+			<summary><strong><?php esc_html_e( 'Raw payload for one contact', 'gohighlevel-integration' ); ?></strong></summary>
+
+			<p>
+				<?php if ( empty( $custom ) ) : ?>
+					<strong><?php esc_html_e( 'This contact came back with no custom field values at all.', 'gohighlevel-integration' ); ?></strong>
+					<?php esc_html_e( 'If the field is filled in for this contact in GoHighLevel, the contact list endpoint is not returning custom fields for this location.', 'gohighlevel-integration' ); ?>
+				<?php else : ?>
+					<?php esc_html_e( 'Custom field values on this contact, as sent:', 'gohighlevel-integration' ); ?>
+				<?php endif; ?>
+			</p>
+
+			<pre style="overflow:auto;max-height:22em;padding:1em;background:#f6f7f7"><?php echo esc_html( (string) wp_json_encode( $custom, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ); ?></pre>
+
+			<p><strong><?php esc_html_e( 'Custom field definitions (ID → key):', 'gohighlevel-integration' ); ?></strong></p>
+			<pre style="overflow:auto;max-height:18em;padding:1em;background:#f6f7f7"><?php
+			$lines = array();
+			foreach ( (array) $data['fields'] as $id => $field ) {
+				$lines[] = $id . '  →  ' . $field['key'] . '   (' . $field['name'] . ', ' . $field['type'] . ')';
+			}
+			echo esc_html( empty( $lines ) ? __( 'None returned — the token may lack the customFields scope.', 'gohighlevel-integration' ) : implode( "\n", $lines ) );
+			?></pre>
+		</details>
+		<?php
+	}
+
+	/**
 	 * Capability + nonce check for the admin-post actions.
 	 *
 	 * @param string $action Nonce action.
@@ -169,6 +256,7 @@ class GHLD_Admin {
 
 			<?php self::render_notice(); ?>
 			<?php self::render_status( $state ); ?>
+			<?php self::render_inspection(); ?>
 
 			<form method="post" action="options.php">
 				<?php settings_fields( self::GROUP ); ?>
@@ -451,7 +539,14 @@ class GHLD_Admin {
 				<p><em><?php esc_html_e( 'Add a token (and a Location ID for API v2) below, save, then sync.', 'gohighlevel-integration' ); ?></em></p>
 			<?php endif; ?>
 			<p>
-				<?php foreach ( array( 'ghld_sync' => __( 'Sync now', 'gohighlevel-integration' ), 'ghld_test' => __( 'Test connection', 'gohighlevel-integration' ) ) as $action => $label ) : ?>
+				<?php
+				$ghld_actions = array(
+					'ghld_sync'    => __( 'Sync now', 'gohighlevel-integration' ),
+					'ghld_test'    => __( 'Test connection', 'gohighlevel-integration' ),
+					'ghld_inspect' => __( 'Inspect a contact', 'gohighlevel-integration' ),
+				);
+				foreach ( $ghld_actions as $action => $label ) :
+					?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:8px">
 						<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>" />
 						<?php wp_nonce_field( $action ); ?>

@@ -50,6 +50,7 @@ $ghld_place = array_filter(
 					class="ghld-avatar ghld-avatar-large"
 					src="<?php echo esc_url( $ghld_contact['photo'] ); ?>"
 					alt="<?php echo esc_attr( $ghld_contact['name'] ); ?>"
+					data-ghld-initials="<?php echo esc_attr( $ghld_contact['initials'] ); ?>"
 					loading="lazy"
 					decoding="async"
 					width="200"

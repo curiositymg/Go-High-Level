@@ -597,6 +597,7 @@ ghld_ok( false !== strpos( $card_html, 'ghld-card-clickable' ), 'cards are marke
 ghld_ok( false !== strpos( $card_html, 'data-ghld-open' ), 'the name is a button, so the modal is reachable by keyboard' );
 ghld_ok( false !== strpos( $card_html, 'data-ghld-detail' ), 'each card carries its own detail panel' );
 ghld_ok( false !== strpos( $card_html, 'data-ghld-name="Rosalind Franklin"' ), 'the card names the contact for the dialog title' );
+ghld_ok( false !== strpos( $card_html, 'data-ghld-initials="RF"' ), 'the headshot carries initials to fall back to if it fails to load' );
 
 $inert_scope = array_merge( $default_scope, array( 'modal' => false ) );
 $inert_html  = GHLD_Template::get(

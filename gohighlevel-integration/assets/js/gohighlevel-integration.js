@@ -337,9 +337,42 @@
 	}
 
 	/**
+	 * Swap a headshot that fails to load for the initials circle.
+	 *
+	 * A stored URL can be unreachable — the file was removed, or the host wants
+	 * credentials the visitor's browser doesn't send. Initials read better than
+	 * a broken-image icon. Registered in the capture phase because `error` does
+	 * not bubble.
+	 */
+	function initAvatarFallback() {
+		document.addEventListener(
+			'error',
+			function ( event ) {
+				var img = event.target;
+
+				if ( ! img || 'IMG' !== img.tagName || ! img.classList.contains( 'ghld-avatar' ) ) {
+					return;
+				}
+
+				var initials = document.createElement( 'span' );
+				initials.className = img.className + ' ghld-avatar-initials';
+				initials.setAttribute( 'aria-hidden', 'true' );
+				initials.textContent = img.getAttribute( 'data-ghld-initials' ) || '';
+
+				if ( img.parentNode ) {
+					img.parentNode.replaceChild( initials, img );
+				}
+			},
+			true
+		);
+	}
+
+	/**
 	 * Boot every directory on the page.
 	 */
 	function boot() {
+		initAvatarFallback();
+
 		Array.prototype.forEach.call(
 			document.querySelectorAll( '.ghld-directory[data-ghld-instance]' ),
 			init
