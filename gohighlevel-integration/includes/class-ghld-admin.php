@@ -27,6 +27,7 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_sync', array( __CLASS__, 'handle_sync' ) );
 		add_action( 'admin_post_ghld_test', array( __CLASS__, 'handle_test' ) );
 		add_action( 'admin_post_ghld_inspect', array( __CLASS__, 'handle_inspect' ) );
+		add_action( 'admin_post_ghld_store', array( __CLASS__, 'handle_store' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
@@ -192,6 +193,44 @@ class GHLD_Admin {
 	}
 
 	/**
+	 * Write the inspected contact straight into the cache.
+	 *
+	 * Turns "the payload resolves a headshot but the cache has not caught up"
+	 * into something you can see on the page a second later, rather than after
+	 * a few hundred background fetches.
+	 *
+	 * @return void
+	 */
+	public static function handle_store() {
+		self::guard( 'ghld_store' );
+
+		$data = get_transient( 'ghld_inspect' );
+
+		if ( ! is_array( $data ) || empty( $data['contact'] ) ) {
+			self::redirect( 'error', __( 'That inspection has expired — inspect the contact again.', 'gohighlevel-integration' ) );
+		}
+
+		$contact = GHLD_Contact::normalize(
+			$data['contact'],
+			is_array( $data['fields'] ) ? $data['fields'] : GHLD_Repository::custom_fields(),
+			GHLD_Settings::all()
+		);
+
+		if ( ! GHLD_Repository::store_contact( $contact ) ) {
+			self::redirect( 'error', __( 'That contact is not in the cached set, so there was nothing to update. Press "Sync now" first.', 'gohighlevel-integration' ) );
+		}
+
+		self::redirect(
+			'success',
+			sprintf(
+				/* translators: %s: contact name. */
+				__( '%s updated in the cache — reload the directory to see it.', 'gohighlevel-integration' ),
+				$contact['name']
+			)
+		);
+	}
+
+	/**
 	 * Find a cached contact by name or email fragment.
 	 *
 	 * @param string $who Search term.
@@ -263,9 +302,15 @@ class GHLD_Admin {
 					<img src="<?php echo esc_url( $live ); ?>" alt="" style="max-width:160px;border-radius:50%;margin-top:.5em" />
 				</p>
 				<?php if ( $live !== $stored ) : ?>
-					<p class="notice notice-warning" style="padding:8px 12px">
-						<?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it — press "Sync now" to bring the cache up to date. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?>
-					</p>
+					<div class="notice notice-warning" style="padding:8px 12px">
+						<p><?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?></p>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<input type="hidden" name="action" value="ghld_store" />
+							<?php wp_nonce_field( 'ghld_store' ); ?>
+							<button type="submit" class="button button-primary"><?php esc_html_e( 'Put this contact in the cache now', 'gohighlevel-integration' ); ?></button>
+							<span class="description"><?php esc_html_e( 'Updates this one contact immediately, so you can see it on the page without waiting for the whole sync.', 'gohighlevel-integration' ); ?></span>
+						</form>
+					</div>
 				<?php endif; ?>
 			<?php else : ?>
 				<p class="notice notice-error" style="padding:8px 12px">

@@ -3,7 +3,7 @@
  * Plugin Name:       GoHighLevel Integration
  * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
- * Version:           1.8.4
+ * Version:           1.8.5
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Curiosity Marketing Group
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GHLD_VERSION', '1.8.4' );
+define( 'GHLD_VERSION', '1.8.5' );
 define( 'GHLD_FILE', __FILE__ );
 define( 'GHLD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GHLD_URL', plugin_dir_url( __FILE__ ) );
@@ -85,6 +85,14 @@ function ghld_run_scheduled_sync() {
 	GHLD_Repository::sync();
 }
 add_action( GHLD_Repository::CRON_HOOK, 'ghld_run_scheduled_sync' );
+
+/**
+ * Continue fetching full contact records in the background.
+ */
+function ghld_run_enrichment() {
+	GHLD_Repository::continue_enrich();
+}
+add_action( GHLD_Repository::CRON_ENRICH, 'ghld_run_enrichment' );
 
 /**
  * Register the recurring sync on activation.

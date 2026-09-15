@@ -32,3 +32,4 @@ foreach ( (array) $ghld_keys as $ghld_key ) {
 }
 
 wp_clear_scheduled_hook( 'ghld_sync_contacts' );
+wp_clear_scheduled_hook( 'ghld_enrich_contacts' );

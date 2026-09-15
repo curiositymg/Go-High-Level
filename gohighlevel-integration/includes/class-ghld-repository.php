@@ -20,6 +20,7 @@ class GHLD_Repository {
 	const OPTION_FIELDS   = 'ghld_custom_fields';
 	const OPTION_STATE    = 'ghld_sync_state';
 	const CRON_HOOK       = 'ghld_sync_contacts';
+	const CRON_ENRICH     = 'ghld_enrich_contacts';
 
 	/**
 	 * In-request memo so several shortcodes on one page share one read.
@@ -113,6 +114,14 @@ class GHLD_Repository {
 		}
 
 		if ( ! empty( $settings['deep_sync'] ) ) {
+			$state = self::state();
+			self::update_state(
+				array(
+					'enrich_pass'   => ( isset( $state['enrich_pass'] ) ? (int) $state['enrich_pass'] : 0 ) + 1,
+					'enrich_cursor' => 0,
+				)
+			);
+
 			$contacts = self::enrich( $contacts, $client, $fields, $settings );
 		}
 
@@ -129,6 +138,8 @@ class GHLD_Repository {
 			)
 		);
 		self::$memo = $contacts;
+
+		self::schedule_continuation();
 
 		/**
 		 * Fires after the contact cache has been refreshed.
@@ -181,6 +192,8 @@ class GHLD_Repository {
 		$resolved = 0;
 		$offset   = 0;
 
+		$pass = isset( $state['enrich_pass'] ) ? (int) $state['enrich_pass'] : 1;
+
 		for ( $offset = 0; $offset < $total; $offset++ ) {
 			if ( $fetched >= $cap || microtime( true ) >= $deadline ) {
 				break;
@@ -189,6 +202,12 @@ class GHLD_Repository {
 			$index = ( $cursor + $offset ) % $total;
 
 			if ( ! empty( $contacts[ $index ]['photo'] ) || empty( $contacts[ $index ]['id'] ) ) {
+				continue;
+			}
+
+			// Already fetched during this pass: it simply has no headshot, so
+			// asking again would spin forever.
+			if ( isset( $contacts[ $index ]['enrich_pass'] ) && (int) $contacts[ $index ]['enrich_pass'] === $pass ) {
 				continue;
 			}
 
@@ -208,13 +227,16 @@ class GHLD_Repository {
 					$resolved++;
 				}
 			}
+
+			$contacts[ $index ]['enrich_pass'] = $pass;
 		}
 
 		// How many are still waiting, so the admin can say whether pressing
 		// Sync again will achieve anything.
 		$remaining = 0;
 		foreach ( $contacts as $contact ) {
-			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) ) {
+			$done = isset( $contact['enrich_pass'] ) && (int) $contact['enrich_pass'] === $pass;
+			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) && ! $done ) {
 				$remaining++;
 			}
 		}
@@ -229,6 +251,80 @@ class GHLD_Repository {
 		);
 
 		return $contacts;
+	}
+
+	/**
+	 * Continue enriching in the background until the pass is done.
+	 *
+	 * Fetching several hundred contacts one at a time outlasts any single
+	 * request, and asking someone to keep pressing a button until it finishes
+	 * is not a design. Each run books the next one a minute out and stops on
+	 * its own once every contact has been tried.
+	 *
+	 * @return void
+	 */
+	public static function continue_enrich() {
+		if ( empty( GHLD_Settings::get( 'deep_sync' ) ) || ! GHLD_Settings::is_configured() ) {
+			return;
+		}
+
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		if ( ! is_array( $contacts ) || empty( $contacts ) ) {
+			return;
+		}
+
+		$contacts = self::enrich( $contacts, new GHLD_Client(), self::custom_fields(), GHLD_Settings::all() );
+		$contacts = self::localize_photos( $contacts );
+
+		update_option( self::OPTION_CONTACTS, $contacts, false );
+		self::$memo = null;
+
+		self::schedule_continuation();
+	}
+
+	/**
+	 * Book the next enrichment run when work is still outstanding.
+	 *
+	 * @return void
+	 */
+	protected static function schedule_continuation() {
+		$state = self::state();
+
+		if ( empty( $state['enrich_remaining'] ) ) {
+			return;
+		}
+		if ( wp_next_scheduled( self::CRON_ENRICH ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CRON_ENRICH );
+	}
+
+	/**
+	 * Replace one contact in the cache with a freshly fetched record.
+	 *
+	 * @param array $contact Normalized contact.
+	 * @return bool
+	 */
+	public static function store_contact( array $contact ) {
+		if ( empty( $contact['id'] ) ) {
+			return false;
+		}
+
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		$contacts = is_array( $contacts ) ? $contacts : array();
+
+		foreach ( $contacts as $index => $existing ) {
+			if ( isset( $existing['id'] ) && $existing['id'] === $contact['id'] ) {
+				$contacts[ $index ] = $contact;
+				update_option( self::OPTION_CONTACTS, $contacts, false );
+				self::$memo = null;
+
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
