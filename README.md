@@ -84,7 +84,7 @@ never appears in a database dump or in the settings form.
 | `name_format` | `name_title` | `name_title` prints "Emily Billingsley, MD"; `name` puts the title on its own line. |
 | `view` | `page` | `page` gives each contact their own URL; `modal` opens a dialog over the grid. |
 | `modal` | `yes` | With `view="modal"`, `no` makes cards non-clickable and ships no detail markup. |
-| `modal_show` | setting | What the detail modal lists — same element names as `show`. |
+| `modal_show` | setting | What the contact page (and modal) lists — same element names as `show`, plus `cf:<field_key>` for any custom field. |
 | `search` | — | A search term always applied to this directory, on top of whatever a visitor types. |
 | `empty` | — | Message shown when nothing matches. |
 

@@ -613,7 +613,7 @@ class GHLD_Admin {
 						<th scope="row"><?php esc_html_e( 'Show on each card', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<?php self::checkbox_list( $name . '[show]', self::show_choices( $fields ), (array) $settings['show'] ); ?>
-							<p class="description"><?php esc_html_e( 'Email and phone are off by default — only turn them on for contacts who expect their details to be public.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'What appears on the grid. Email and phone are off by default — only turn them on for contacts who expect their details to be public. The contact page has its own list below.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -658,10 +658,12 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Show in the detail modal', 'gohighlevel-integration' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Show on the contact page', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<?php self::checkbox_list( $name . '[modal_show]', self::show_choices( $fields ), (array) $settings['modal_show'] ); ?>
-							<p class="description"><?php esc_html_e( 'Separate from the card list above, so the modal can carry phone, email or a full address without printing them on every card in the grid.', 'gohighlevel-integration' ); ?></p>
+							<p class="description">
+								<?php esc_html_e( 'Separate from the card list above, so a contact page can carry phone, email, a full address or any custom field without printing them on every card in the grid. Every custom field found in your location is listed here. The same list is used by the modal.', 'gohighlevel-integration' ); ?>
+							</p>
 						</td>
 					</tr>
 					<tr>
@@ -976,7 +978,8 @@ class GHLD_Admin {
 		<ul class="ul-disc">
 			<li><code>tags</code> / <code>exclude_tags</code> — <?php esc_html_e( 'narrow this directory to certain GoHighLevel tags (applied on top of the global setting).', 'gohighlevel-integration' ); ?></li>
 			<li><code>filters</code> — <?php esc_html_e( 'which controls appear in the filter bar: search, tag, city, state, company, sort, or cf:your_field_key. Use filters="none" to hide the bar.', 'gohighlevel-integration' ); ?></li>
-			<li><code>show</code> — <?php esc_html_e( 'card contents: photo, title, company, location, tags, email, phone, website, bio, or cf:your_field_key.', 'gohighlevel-integration' ); ?></li>
+			<li><code>show</code> — <?php esc_html_e( 'card contents: photo, title, specialty, company, location, address, tags, email, phone, fax, website, bio, or cf:your_field_key.', 'gohighlevel-integration' ); ?></li>
+			<li><code>modal_show</code> — <?php esc_html_e( 'the same element names, for the contact page and modal.', 'gohighlevel-integration' ); ?></li>
 			<li><code>layout</code> — <?php esc_html_e( 'grid (default) or list.', 'gohighlevel-integration' ); ?></li>
 			<li><code>name_format</code> — <?php esc_html_e( 'name_title (default) prints "Name, Title"; name puts the title on its own line.', 'gohighlevel-integration' ); ?></li>
 			<li><code>modal</code> / <code>modal_show</code> — <?php esc_html_e( 'modal="no" makes cards non-clickable; modal_show takes the same element names as show.', 'gohighlevel-integration' ); ?></li>

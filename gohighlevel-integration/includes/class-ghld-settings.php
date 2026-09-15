@@ -47,6 +47,8 @@ class GHLD_Settings {
 			'view'          => 'page',
 			'noindex_generated' => 1,
 			'modal'         => 1,
+			// Drives the contact page as well as the modal; the key is kept as
+			// modal_show so existing installs do not lose their choices.
 			'modal_show'    => array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'phone', 'fax', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
 			'columns'       => 3,
