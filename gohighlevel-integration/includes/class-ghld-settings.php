@@ -46,6 +46,7 @@ class GHLD_Settings {
 			'name_format'   => 'name_title',
 			'view'          => 'page',
 			'noindex_generated' => 1,
+			'isolate_profile' => 1,
 			'modal'         => 1,
 			// Drives the contact page as well as the modal; the key is kept as
 			// modal_show so existing installs do not lose their choices.
@@ -219,6 +220,7 @@ class GHLD_Settings {
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
 		$clean['view']          = self::sanitize_choice( isset( $input['view'] ) ? $input['view'] : '', self::view_choices(), 'page' );
 		$clean['noindex_generated'] = empty( $input['noindex_generated'] ) ? 0 : 1;
+		$clean['isolate_profile'] = empty( $input['isolate_profile'] ) ? 0 : 1;
 		$clean['deep_sync']     = empty( $input['deep_sync'] ) ? 0 : 1;
 		$clean['cache_photos']  = empty( $input['cache_photos'] ) ? 0 : 1;
 		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );

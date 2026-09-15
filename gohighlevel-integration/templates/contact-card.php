@@ -16,7 +16,9 @@ $ghld_show    = (array) $data['scope']['show'];
 $ghld_view    = isset( $data['scope']['view'] ) ? $data['scope']['view'] : 'page';
 $ghld_linked  = ( 'page' === $ghld_view );
 $ghld_modal   = ! $ghld_linked && ! empty( $data['scope']['modal'] );
-$ghld_href    = $ghld_linked ? GHLD_Shortcode::profile_url( $ghld_contact ) : '';
+$ghld_href    = $ghld_linked
+	? GHLD_Shortcode::profile_url( $ghld_contact, isset( $data['request'] ) ? (array) $data['request'] : array() )
+	: '';
 $ghld_linked  = $ghld_linked && '' !== $ghld_href;
 
 // When the directory prints "Name, Title", the title rides on the name line

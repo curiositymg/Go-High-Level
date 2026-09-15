@@ -1340,6 +1340,57 @@ $_GET = array();
 update_option( 'ghld_settings', $defaults );
 
 /* -------------------------------------------------------------------------
+ * Going back to where you were
+ * ---------------------------------------------------------------------- */
+
+$paged_request = GHLD_Shortcode::parse_request(
+	array(
+		'ghld_s'    => 'cardiology',
+		'ghld_page' => '3',
+	),
+	array_merge( $default_scope, array( 'filters' => array( 'search', 'tag' ) ) )
+);
+
+$deep_link = GHLD_Shortcode::profile_url( $linked, $paged_request );
+ghld_ok( false !== strpos( $deep_link, 'ghld_contact=rosalind-franklin' ), 'the profile link names the contact' );
+ghld_ok( false !== strpos( $deep_link, 'ghld_page=3' ), 'and remembers which page they were on' );
+ghld_ok( false !== strpos( $deep_link, 'ghld_s=cardiology' ), 'and what they had searched for' );
+
+$_GET = array(
+	'ghld_contact' => 'rosalind-franklin',
+	'ghld_page'    => '3',
+	'ghld_s'       => 'cardiology',
+);
+$back = GHLD_Shortcode::directory_url();
+ghld_ok( false === strpos( $back, 'ghld_contact' ), 'going back drops the contact' );
+ghld_ok( false !== strpos( $back, 'ghld_page=3' ), 'and returns to the same page of results' );
+ghld_ok( false !== strpos( $back, 'ghld_s=cardiology' ), 'with the same search still applied' );
+
+$_GET = array( 'ghld_contact' => 'rosalind-franklin' );
+ghld_same( '/directory/', GHLD_Shortcode::directory_url(), 'arriving straight at a contact goes back to the directory itself' );
+
+/* -------------------------------------------------------------------------
+ * A contact page shows only the contact
+ * ---------------------------------------------------------------------- */
+
+$page_content = '<p>Intro copy about the directory.</p>[ghl_directory columns="3"]<p>Promote your business!</p>';
+
+$_GET = array( 'ghld_contact' => 'rosalind-franklin' );
+ghld_same( '[ghl_directory columns="3"]', GHLD_Shortcode::isolate_profile( $page_content ), 'a contact page keeps only the directory shortcode' );
+ghld_ok( in_array( 'ghld-contact-page', GHLD_Shortcode::body_class( array( 'page' ) ), true ), 'and marks the body for the theme' );
+
+$_GET = array();
+ghld_same( $page_content, GHLD_Shortcode::isolate_profile( $page_content ), 'the directory page itself is untouched' );
+ghld_ok( ! in_array( 'ghld-contact-page', GHLD_Shortcode::body_class( array( 'page' ) ), true ), 'and carries no extra body class' );
+
+$_GET = array( 'ghld_contact' => 'rosalind-franklin' );
+update_option( 'ghld_settings', array_merge( $defaults, array( 'isolate_profile' => 0 ) ) );
+ghld_same( $page_content, GHLD_Shortcode::isolate_profile( $page_content ), 'turning the setting off leaves the page alone' );
+
+$_GET = array();
+update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

@@ -559,6 +559,44 @@ function wp_upload_dir() {
 }
 
 /**
+ * Singular-view check.
+ *
+ * @return bool
+ */
+function is_singular() {
+	return true;
+}
+
+/**
+ * Main-query check.
+ *
+ * @return bool
+ */
+function is_main_query() {
+	return true;
+}
+
+/**
+ * In-the-loop check.
+ *
+ * @return bool
+ */
+function in_the_loop() {
+	return true;
+}
+
+/**
+ * Shortcode presence check.
+ *
+ * @param string $content Content.
+ * @param string $tag     Shortcode tag.
+ * @return bool
+ */
+function has_shortcode( $content, $tag ) {
+	return false !== strpos( (string) $content, '[' . $tag );
+}
+
+/**
  * Slash stripper.
  *
  * @param mixed $value Value.

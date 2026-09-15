@@ -25,6 +25,7 @@ if ( empty( $data['items'] ) ) {
 				array(
 					'contact' => $ghld_contact,
 					'scope'   => $data['scope'],
+					'request' => isset( $data['request'] ) ? $data['request'] : array(),
 				)
 			);
 			?>

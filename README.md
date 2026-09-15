@@ -122,7 +122,11 @@ lists the discovered fields by name after the first sync.
   than generated views.
 - **Contact pages.** By default a card is a link to that contact's own page on
   the same directory page (`?ghld_contact=<slug>`), rendered by
-  `templates/contact-profile.php`. Slugs come from the name, numbered on
+  `templates/contact-profile.php`. The link carries the directory's current
+  page and filters, so "Back" returns to exactly where the visitor was. On a
+  contact page the rest of the page's content is hidden and a
+  `ghld-contact-page` body class is added for anything outside the content
+  area. Slugs come from the name, numbered on
   collision, and are assigned in API order so a shared link keeps working. The
   tag scope is enforced on lookup: a contact the directory doesn't list has no
   page, whatever the URL says.
@@ -185,7 +189,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 204 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 216 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

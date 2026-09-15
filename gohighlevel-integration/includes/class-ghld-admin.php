@@ -639,6 +639,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Contact page content', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[isolate_profile]" value="1" <?php checked( ! empty( $settings['isolate_profile'] ) ); ?> />
+								<?php esc_html_e( 'Show only the contact, hiding the rest of the directory page', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'The directory sits on an ordinary page, so that page\'s intro copy, banners and calls to action would otherwise wrap around a single physician. Anything outside the content area — a sidebar, or a builder section above the header — is beyond this plugin\'s reach; the body tag carries a ghld-contact-page class so your theme can hide those too.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Search engines', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>

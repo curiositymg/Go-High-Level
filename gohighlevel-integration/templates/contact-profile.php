@@ -24,7 +24,7 @@ $ghld_heading = GHLD_Shortcode::display_name( $ghld_contact, $ghld_scope );
 	<p class="ghld-profile-back">
 		<a href="<?php echo esc_url( $data['back'] ); ?>" class="ghld-back-link">
 			<span aria-hidden="true">&larr;</span>
-			<?php esc_html_e( 'Back to the directory', 'gohighlevel-integration' ); ?>
+			<?php esc_html_e( 'Back', 'gohighlevel-integration' ); ?>
 		</a>
 	</p>
 

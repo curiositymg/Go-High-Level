@@ -26,6 +26,8 @@ class GHLD_Shortcode {
 	public static function init() {
 		add_shortcode( self::TAG, array( __CLASS__, 'render' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'register_assets' ) );
+		add_filter( 'the_content', array( __CLASS__, 'isolate_profile' ), 1 );
+		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
 	}
 
 	/**
@@ -119,6 +121,53 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * Show only the contact on a contact page.
+	 *
+	 * The directory lives on an ordinary page, so everything else that page
+	 * carries — intro copy, banners, calls to action — renders around the
+	 * profile. On a contact page that is somebody else's page wrapped around
+	 * one person, so the content is reduced to the directory shortcode alone
+	 * and the shortcode renders the profile in its place.
+	 *
+	 * Runs before do_shortcode, and keeps the shortcode with its attributes
+	 * rather than rebuilding it, so the directory's scope is preserved.
+	 *
+	 * @param string $content Post content.
+	 * @return string
+	 */
+	public static function isolate_profile( $content ) {
+		if ( ! is_singular() || ! is_main_query() || ! in_the_loop() ) {
+			return $content;
+		}
+		if ( empty( GHLD_Settings::get( 'isolate_profile', 1 ) ) ) {
+			return $content;
+		}
+		if ( '' === self::requested_slug() || ! has_shortcode( $content, self::TAG ) ) {
+			return $content;
+		}
+
+		if ( preg_match( '/\[' . self::TAG . '[^\]]*\]/', $content, $matches ) ) {
+			return $matches[0];
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Mark the body so a theme can hide anything outside the content area.
+	 *
+	 * @param string[] $classes Body classes.
+	 * @return string[]
+	 */
+	public static function body_class( $classes ) {
+		if ( '' !== self::requested_slug() ) {
+			$classes[] = 'ghld-contact-page';
+		}
+
+		return $classes;
+	}
+
+	/**
 	 * The contact slug asked for in the URL, if any.
 	 *
 	 * @return string
@@ -147,12 +196,21 @@ class GHLD_Shortcode {
 	 * @param array $contact Normalized contact.
 	 * @return string
 	 */
-	public static function profile_url( array $contact ) {
+	public static function profile_url( array $contact, array $request = array() ) {
 		if ( empty( $contact['slug'] ) ) {
 			return '';
 		}
 
-		return '?' . http_build_query( array( self::QUERY_PREFIX . 'contact' => $contact['slug'] ) );
+		// Everything the visitor had applied rides along, so the back link can
+		// put them back where they were rather than at page one.
+		$query = empty( $request ) ? array() : self::request_to_query( $request );
+		if ( ! empty( $request['page'] ) && (int) $request['page'] > 1 ) {
+			$query[ self::QUERY_PREFIX . 'page' ] = (int) $request['page'];
+		}
+
+		$query[ self::QUERY_PREFIX . 'contact' ] = $contact['slug'];
+
+		return '?' . http_build_query( $query );
 	}
 
 	/**
@@ -161,6 +219,27 @@ class GHLD_Shortcode {
 	 * @return string
 	 */
 	public static function directory_url() {
+		$query = array();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		foreach ( (array) $_GET as $key => $value ) {
+			$key = (string) $key;
+
+			if ( 0 !== strpos( $key, self::QUERY_PREFIX ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+			// Everything except the contact itself: that is what going back means.
+			if ( self::QUERY_PREFIX . 'contact' === $key ) {
+				continue;
+			}
+
+			$query[ $key ] = sanitize_text_field( wp_unslash( (string) $value ) );
+		}
+
+		if ( ! empty( $query ) ) {
+			return '?' . http_build_query( $query );
+		}
+
 		$path = wp_parse_url( home_url( add_query_arg( array() ) ), PHP_URL_PATH );
 
 		return ( is_string( $path ) && '' !== $path ) ? $path : '/';
@@ -179,9 +258,10 @@ class GHLD_Shortcode {
 		$results = GHLD_Template::get(
 			'results',
 			array(
-				'items' => $query['items'],
-				'scope' => $scope,
-				'total' => $query['total'],
+				'items'   => $query['items'],
+				'scope'   => $scope,
+				'total'   => $query['total'],
+				'request' => array_merge( $request, array( 'page' => $query['page'] ) ),
 			)
 		);
 
