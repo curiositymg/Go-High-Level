@@ -639,6 +639,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Search engines', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[noindex_generated]" value="1" <?php checked( ! empty( $settings['noindex_generated'] ) ); ?> />
+								<?php esc_html_e( 'Keep contact pages and filtered views out of search results', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Marks them noindex, and overrides Yoast, Rank Math and All in One SEO so they cannot say otherwise. The directory page itself is left alone. Crawling stays allowed on purpose — a page has to be readable for its noindex to be seen, so blocking it in robots.txt would have the opposite effect.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Detail modal', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>

@@ -114,6 +114,12 @@ lists the discovered fields by name after the first sync.
 - **Re-mapping is free.** Changing which field holds the photo/title/bio
   re-derives those values from the cached contacts; only credential changes force
   a re-fetch.
+- **Search engines.** Contact pages and filtered views are marked
+  `noindex, follow`, with Yoast, Rank Math and All in One SEO overridden so they
+  cannot say otherwise; the directory page itself is untouched. Crawling is
+  deliberately still permitted — a page must be fetchable for its noindex to be
+  seen. They are also absent from sitemaps, which list posts and terms rather
+  than generated views.
 - **Contact pages.** By default a card is a link to that contact's own page on
   the same directory page (`?ghld_contact=<slug>`), rendered by
   `templates/contact-profile.php`. Slugs come from the name, numbered on
@@ -179,7 +185,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 193 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 204 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

@@ -1300,6 +1300,46 @@ ghld_ok( null === GHLD_Repository::find_by_slug( 'office-manager', $physician_sc
 ghld_ok( null === GHLD_Repository::find_by_slug( 'nobody-at-all', $physician_scope ), 'an unknown slug resolves to nothing' );
 
 /* -------------------------------------------------------------------------
+ * Keeping generated views out of search results
+ * ---------------------------------------------------------------------- */
+
+update_option( 'ghld_settings', $defaults );
+
+$_GET = array();
+ghld_same( false, GHLD_Seo::is_restricted(), 'the directory page itself stays indexable' );
+
+$_GET = array( 'ghld_contact' => 'rosalind-franklin' );
+ghld_same( true, GHLD_Seo::is_restricted(), 'a contact page is kept out of search results' );
+
+$_GET = array( 'ghld_s' => 'cardiology' );
+ghld_same( true, GHLD_Seo::is_restricted(), 'a filtered view is kept out too' );
+
+$_GET = array( 'ghld_page' => '3' );
+ghld_same( true, GHLD_Seo::is_restricted(), 'so is a paginated one' );
+
+$_GET = array( 'utm_source' => 'newsletter' );
+ghld_same( false, GHLD_Seo::is_restricted(), 'an unrelated query argument changes nothing' );
+
+$_GET = array( 'ghld_contact' => 'rosalind-franklin' );
+
+ob_start();
+GHLD_Seo::print_robots();
+$ghld_robots = ob_get_clean();
+ghld_ok( false !== strpos( $ghld_robots, 'content="noindex, follow"' ), 'the robots tag is printed on a contact page' );
+
+ghld_same( 'noindex, follow', GHLD_Seo::filter_robots_string( 'index, follow' ), 'an SEO plugin cannot override it with a string' );
+$ghld_array = GHLD_Seo::filter_robots_array( array( 'index' => 'index', 'follow' => 'follow' ) );
+ghld_same( 'noindex', $ghld_array['index'], 'nor with an array' );
+ghld_same( 'follow', $ghld_array['follow'], 'and following links is left alone' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'noindex_generated' => 0 ) ) );
+ghld_same( false, GHLD_Seo::is_restricted(), 'turning the setting off lets them be indexed again' );
+ghld_same( 'index, follow', GHLD_Seo::filter_robots_string( 'index, follow' ), 'and leaves the SEO plugin alone' );
+
+$_GET = array();
+update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

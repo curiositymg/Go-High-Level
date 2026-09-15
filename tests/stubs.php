@@ -558,6 +558,25 @@ function wp_upload_dir() {
 	);
 }
 
+/**
+ * Slash stripper.
+ *
+ * @param mixed $value Value.
+ * @return mixed
+ */
+function wp_unslash( $value ) {
+	return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( (string) $value );
+}
+
+/**
+ * Admin-screen check.
+ *
+ * @return bool
+ */
+function is_admin() {
+	return false;
+}
+
 require_once GHLD_PATH . 'includes/class-ghld-settings.php';
 require_once GHLD_PATH . 'includes/class-ghld-client.php';
 require_once GHLD_PATH . 'includes/class-ghld-contact.php';
@@ -565,3 +584,4 @@ require_once GHLD_PATH . 'includes/class-ghld-photos.php';
 require_once GHLD_PATH . 'includes/class-ghld-repository.php';
 require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
+require_once GHLD_PATH . 'includes/class-ghld-seo.php';

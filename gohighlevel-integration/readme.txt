@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.9.1 =
+* Contact pages and filtered views are marked noindex, overriding Yoast, Rank
+  Math and All in One SEO. The directory page itself stays indexable, and
+  crawling stays allowed so the noindex can actually be read.
 
 = 1.9.0 =
 * Each contact now has their own page at a shareable URL, instead of a modal.
