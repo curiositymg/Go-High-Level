@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.6.2 =
+* The headshot count now separates photos resolved from the mapped field from
+  those falling back to the GoHighLevel profile picture, so a working fallback
+  can't be mistaken for a working mapping.
 
 = 1.6.1 =
 * "Inspect a contact" in Settings dumps one contact's raw custom field payload

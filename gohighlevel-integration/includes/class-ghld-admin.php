@@ -579,14 +579,26 @@ class GHLD_Admin {
 		$field = (string) GHLD_Settings::get( 'photo_field', '' );
 		$key   = ( 0 === strpos( $field, 'cf:' ) ) ? substr( $field, 3 ) : '';
 
-		$with_photo = 0;
-		$samples    = array();
-		$key_counts = array();
+		$from_field   = 0;
+		$from_profile = 0;
+		$samples      = array();
+		$key_counts   = array();
 
 		foreach ( $contacts as $contact ) {
-			if ( ! empty( $contact['photo'] ) ) {
-				$with_photo++;
-			} elseif ( '' !== $key && ! empty( $contact['custom'][ $key ] ) && count( $samples ) < 3 ) {
+			// Which source actually produced the photo matters here: the
+			// resolver falls back to GoHighLevel's own profile picture, so a
+			// card showing an image does not mean the mapping worked.
+			$mapped = ( '' !== $key && ! empty( $contact['custom'][ $key ] ) )
+				? GHLD_Contact::first_url( $contact['custom'][ $key ] )
+				: '';
+
+			if ( '' !== $mapped ) {
+				$from_field++;
+			} elseif ( ! empty( $contact['photo'] ) ) {
+				$from_profile++;
+			}
+
+			if ( '' === $mapped && '' !== $key && ! empty( $contact['custom'][ $key ] ) && count( $samples ) < 3 ) {
 				$samples[] = (string) $contact['custom'][ $key ];
 			}
 
@@ -599,19 +611,20 @@ class GHLD_Admin {
 
 		?>
 		<p>
-			<strong><?php esc_html_e( 'Contacts with a headshot:', 'gohighlevel-integration' ); ?></strong>
+			<strong><?php esc_html_e( 'Headshots:', 'gohighlevel-integration' ); ?></strong>
 			<?php
 			printf(
-				/* translators: 1: contacts with a photo, 2: total cached contacts. */
-				esc_html__( '%1$s of %2$s', 'gohighlevel-integration' ),
-				esc_html( number_format_i18n( $with_photo ) ),
+				/* translators: 1: from the mapped field, 2: from the profile picture, 3: total cached contacts. */
+				esc_html__( '%1$s from the mapped field, %2$s from the GoHighLevel profile picture, out of %3$s contacts.', 'gohighlevel-integration' ),
+				esc_html( number_format_i18n( $from_field ) ),
+				esc_html( number_format_i18n( $from_profile ) ),
 				esc_html( number_format_i18n( count( $contacts ) ) )
 			);
 			?>
 		</p>
 		<?php
 
-		if ( $with_photo > 0 || '' === $key ) {
+		if ( $from_field > 0 || '' === $key ) {
 			return;
 		}
 
