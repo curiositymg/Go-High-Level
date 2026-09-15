@@ -490,9 +490,22 @@ function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
 	return $out;
 }
 
+/**
+ * Uploads directory.
+ *
+ * @return array
+ */
+function wp_upload_dir() {
+	return array(
+		'basedir' => sys_get_temp_dir() . '/ghld-test-uploads',
+		'baseurl' => 'https://example.test/wp-content/uploads',
+	);
+}
+
 require_once GHLD_PATH . 'includes/class-ghld-settings.php';
 require_once GHLD_PATH . 'includes/class-ghld-client.php';
 require_once GHLD_PATH . 'includes/class-ghld-contact.php';
+require_once GHLD_PATH . 'includes/class-ghld-photos.php';
 require_once GHLD_PATH . 'includes/class-ghld-repository.php';
 require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';

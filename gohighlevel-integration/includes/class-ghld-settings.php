@@ -29,7 +29,8 @@ class GHLD_Settings {
 			'api_token'     => '',
 			'location_id'   => '',
 			'cache_minutes' => 60,
-			'deep_sync'     => 0,
+			'deep_sync'     => 1,
+			'cache_photos'  => 0,
 			'include_tags'  => 'member - physician',
 			'exclude_tags'  => '',
 			'photo_field'   => 'cf:member_profile_photo',
@@ -213,6 +214,7 @@ class GHLD_Settings {
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
 		$clean['deep_sync']     = empty( $input['deep_sync'] ) ? 0 : 1;
+		$clean['cache_photos']  = empty( $input['cache_photos'] ) ? 0 : 1;
 		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );
 		$clean['columns']       = isset( $input['columns'] ) ? min( 6, max( 1, (int) $input['columns'] ) ) : 3;
 		$clean['per_page']      = isset( $input['per_page'] ) ? min( 200, max( 1, (int) $input['per_page'] ) ) : 24;

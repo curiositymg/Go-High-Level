@@ -116,6 +116,8 @@ class GHLD_Repository {
 			$contacts = self::enrich( $contacts, $client, $fields, $settings );
 		}
 
+		$contacts = self::localize_photos( $contacts );
+
 		update_option( self::OPTION_CONTACTS, $contacts, false );
 		self::update_state(
 			array(
@@ -203,6 +205,62 @@ class GHLD_Repository {
 				'enrich_cursor'   => ( $cursor + $offset ) % $total,
 				'enrich_fetched'  => $fetched,
 				'enrich_resolved' => $resolved,
+			)
+		);
+
+		return $contacts;
+	}
+
+	/**
+	 * Pull protected headshots onto this site.
+	 *
+	 * GoHighLevel serves a file-upload field through an API endpoint that
+	 * answers only to the token, so the URL is useless in a browser. Each sync
+	 * downloads a batch; contacts whose copy already exists cost nothing.
+	 *
+	 * @param array $contacts Normalized contacts.
+	 * @return array
+	 */
+	protected static function localize_photos( array $contacts ) {
+		if ( empty( GHLD_Settings::get( 'cache_photos' ) ) ) {
+			return $contacts;
+		}
+
+		/**
+		 * Filter how many headshots are downloaded per sync.
+		 *
+		 * @param int $budget Downloads per run.
+		 */
+		$budget     = max( 0, (int) apply_filters( 'ghld_photo_batch', 60 ) );
+		$downloaded = 0;
+		$pending    = 0;
+
+		foreach ( $contacts as $index => $contact ) {
+			$url = isset( $contact['photo'] ) ? (string) $contact['photo'] : '';
+
+			if ( '' === $url || empty( $contact['id'] ) || ! GHLD_Photos::needs_local_copy( $url ) ) {
+				continue;
+			}
+
+			$local = GHLD_Photos::localize( $url, $contact['id'], false );
+
+			if ( '' === $local && $budget > $downloaded ) {
+				$local = GHLD_Photos::localize( $url, $contact['id'], true );
+				$downloaded++;
+			} elseif ( '' === $local ) {
+				$pending++;
+				continue;
+			}
+
+			if ( '' !== $local ) {
+				$contacts[ $index ]['photo'] = $local;
+			}
+		}
+
+		self::update_state(
+			array(
+				'photos_downloaded' => $downloaded,
+				'photos_pending'    => $pending,
 			)
 		);
 

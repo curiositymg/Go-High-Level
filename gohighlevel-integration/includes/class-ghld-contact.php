@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '4';
+	const DERIVED_VERSION = '5';
 
 	/**
 	 * Normalize one contact.
@@ -408,12 +408,12 @@ class GHLD_Contact {
 			$key = substr( $field, 3 );
 			$url = isset( $custom[ $key ] ) ? self::first_url( $custom[ $key ] ) : '';
 			if ( '' !== $url ) {
-				return $url;
+				return self::localized( $url, $contact );
 			}
 		}
 
 		if ( '' !== $field && ! empty( $contact['profile_photo'] ) ) {
-			return (string) $contact['profile_photo'];
+			return self::localized( (string) $contact['profile_photo'], $contact );
 		}
 
 		// Gravatar means handing a hash of the contact's email to a third party,
@@ -423,6 +423,26 @@ class GHLD_Contact {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Prefer a cached local copy of a headshot when one exists.
+	 *
+	 * Never downloads: this runs while rendering, and a page view must not wait
+	 * on GoHighLevel. Sync does the fetching.
+	 *
+	 * @param string $url     Source URL.
+	 * @param array  $contact Contact being normalized.
+	 * @return string
+	 */
+	protected static function localized( $url, array $contact ) {
+		if ( ! class_exists( 'GHLD_Photos' ) || ! GHLD_Photos::needs_local_copy( $url ) ) {
+			return $url;
+		}
+
+		$local = GHLD_Photos::localize( $url, isset( $contact['id'] ) ? $contact['id'] : '', false );
+
+		return ( '' !== $local ) ? $local : $url;
 	}
 
 	/**

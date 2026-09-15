@@ -956,6 +956,73 @@ ghld_same( $shot, $multi['photo'], 'several uploaded files use the first' );
 ghld_ok( false === strpos( $multi['search_key'], 'headshot.jpg' ), 'URL values stay out of the search index' );
 
 /* -------------------------------------------------------------------------
+ * Headshot URLs
+ * ---------------------------------------------------------------------- */
+
+// The exact payload a GoHighLevel file-upload field sends: an object keyed by
+// upload UUID, each carrying meta, url and documentId.
+$upload_value = array(
+	'a214983a-5e71-446d-b3ed-e831e5241f25' => array(
+		'meta'       => array(
+			'originalname' => 'stock-photo-golden-retriever.jpg',
+			'mimetype'     => 'image/jpeg',
+			'size'         => 414306,
+			'deleted'      => true,
+		),
+		'url'        => 'https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD',
+		'documentId' => 'kKg9m01DoiWvuDN6GhxD',
+	),
+);
+
+$uploaded = GHLD_Contact::normalize(
+	array(
+		'id'           => 'u1',
+		'contactName'  => 'Upload Test',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => $upload_value,
+			),
+		),
+	),
+	array(
+		'fld_mpp' => array(
+			'key'  => 'member_profile_photo',
+			'name' => 'Member Profile Photo',
+			'type' => 'FILE_UPLOAD',
+		),
+	),
+	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
+);
+
+ghld_same(
+	'https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD',
+	$uploaded['photo'],
+	'the download URL is lifted out of a file-upload field'
+);
+ghld_ok( false === strpos( $uploaded['photo'], 'originalname' ), 'the upload metadata is not mistaken for the URL' );
+
+$uploaded_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $uploaded,
+		'scope'   => GHLD_Shortcode::build_scope( array( 'show' => 'photo' ) ),
+	)
+);
+ghld_ok(
+	false !== strpos( $uploaded_card, 'src="https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD"' ),
+	'the card renders that URL as the img src'
+);
+ghld_ok( false !== strpos( $uploaded_card, 'class="ghld-avatar"' ), 'the headshot uses the round avatar class' );
+
+ghld_same( true, GHLD_Photos::needs_local_copy( 'https://services.leadconnectorhq.com/documents/download/abc' ), 'a document endpoint is flagged for local copying' );
+ghld_same( false, GHLD_Photos::needs_local_copy( 'https://cdn.example.com/headshot.jpg' ), 'an ordinary image URL is left alone' );
+ghld_same( false, GHLD_Photos::needs_local_copy( '' ), 'an empty URL needs nothing' );
+ghld_same( 'png', GHLD_Photos::extension_for( 'image/png; charset=binary' ), 'the extension comes from the content type' );
+ghld_same( 'jpg', GHLD_Photos::extension_for( 'application/octet-stream' ), 'an unknown type falls back to jpg' );
+ghld_same( '', GHLD_Photos::localize( 'https://services.leadconnectorhq.com/documents/download/abc', 'c1', false ), 'no download happens while rendering' );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

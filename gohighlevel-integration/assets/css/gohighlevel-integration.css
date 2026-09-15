@@ -185,6 +185,19 @@
 	width: 100%;
 }
 
+/* Themes routinely square off images inside content; the headshot matches the
+   initials circle it replaces, stated where a theme can't outrank it. */
+.ghld-directory img.ghld-avatar,
+.ghld-directory .ghld-card img.ghld-avatar,
+.ghld-directory .ghld-modal-dialog img.ghld-avatar {
+	border-radius: 50%;
+	object-fit: cover;
+	aspect-ratio: 1 / 1;
+	width: var(--ghld-avatar-size);
+	height: var(--ghld-avatar-size);
+	max-width: var(--ghld-avatar-size);
+}
+
 .ghld-avatar {
 	display: flex;
 	align-items: center;

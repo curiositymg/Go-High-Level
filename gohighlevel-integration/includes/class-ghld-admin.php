@@ -379,6 +379,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Store headshots locally', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[cache_photos]" value="1" <?php checked( ! empty( $settings['cache_photos'] ) ); ?> />
+								<?php esc_html_e( 'Copy headshots into this site\'s uploads folder', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Off by default — GoHighLevel serves the file URLs publicly, so the cards can point straight at them. Turn it on to stop depending on those URLs staying reachable; downloads run in batches during sync.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-include"><?php esc_html_e( 'Only include tags', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ghld-include" name="<?php echo esc_attr( $name ); ?>[include_tags]" value="<?php echo esc_attr( $settings['include_tags'] ); ?>" />
