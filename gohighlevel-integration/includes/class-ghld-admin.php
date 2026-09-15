@@ -28,6 +28,7 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_test', array( __CLASS__, 'handle_test' ) );
 		add_action( 'admin_post_ghld_inspect', array( __CLASS__, 'handle_inspect' ) );
 		add_action( 'admin_post_ghld_store', array( __CLASS__, 'handle_store' ) );
+		add_action( 'admin_post_ghld_recheck', array( __CLASS__, 'handle_recheck' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
@@ -97,6 +98,38 @@ class GHLD_Admin {
 				(int) $result
 			)
 		);
+	}
+
+	/**
+	 * Handle the "Look for new photos" button.
+	 *
+	 * @return void
+	 */
+	public static function handle_recheck() {
+		self::guard( 'ghld_recheck' );
+
+		GHLD_Repository::clear_enrich_cooldown();
+		$result = GHLD_Repository::sync();
+
+		if ( is_wp_error( $result ) ) {
+			self::redirect( 'error', $result->get_error_message() );
+		}
+
+		$state     = GHLD_Repository::state();
+		$remaining = isset( $state['enrich_remaining'] ) ? (int) $state['enrich_remaining'] : 0;
+
+		if ( $remaining > 0 ) {
+			self::redirect(
+				'success',
+				sprintf(
+					/* translators: %s: contacts left to check. */
+					__( 'Checking every contact again. %s to go — the rest continue in the background.', 'gohighlevel-integration' ),
+					number_format_i18n( $remaining )
+				)
+			);
+		}
+
+		self::redirect( 'success', __( 'Checked every contact for a new photo.', 'gohighlevel-integration' ) );
 	}
 
 	/**
@@ -710,11 +743,15 @@ class GHLD_Admin {
 			<?php if ( ! GHLD_Settings::is_configured() ) : ?>
 				<p><em><?php esc_html_e( 'Add a token (and a Location ID for API v2) below, save, then sync.', 'gohighlevel-integration' ); ?></em></p>
 			<?php endif; ?>
+			<p class="description" style="margin-bottom:.5em">
+				<?php esc_html_e( '"Look for new photos" asks GoHighLevel about every contact again, including ones that had no headshot when they were last checked — use it after uploading photos rather than waiting a day for the next automatic check.', 'gohighlevel-integration' ); ?>
+			</p>
 			<p>
 				<?php
 				$ghld_actions = array(
-					'ghld_sync' => __( 'Sync now', 'gohighlevel-integration' ),
-					'ghld_test' => __( 'Test connection', 'gohighlevel-integration' ),
+					'ghld_sync'    => __( 'Sync now', 'gohighlevel-integration' ),
+					'ghld_recheck' => __( 'Look for new photos', 'gohighlevel-integration' ),
+					'ghld_test'    => __( 'Test connection', 'gohighlevel-integration' ),
 				);
 				foreach ( $ghld_actions as $action => $label ) :
 					?>

@@ -342,6 +342,36 @@ class GHLD_Repository {
 	}
 
 	/**
+	 * Forget that contacts were already asked for a headshot.
+	 *
+	 * The cooldown stops pointless re-fetching of contacts that have no photo,
+	 * but it also means a headshot uploaded today is not looked for until
+	 * tomorrow. This clears it so the next run asks everyone again.
+	 *
+	 * @return int Contacts whose cooldown was cleared.
+	 */
+	public static function clear_enrich_cooldown() {
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		if ( ! is_array( $contacts ) ) {
+			return 0;
+		}
+
+		$cleared = 0;
+		foreach ( $contacts as $index => $contact ) {
+			if ( isset( $contact['enriched_at'] ) ) {
+				unset( $contacts[ $index ]['enriched_at'] );
+				$cleared++;
+			}
+		}
+
+		update_option( self::OPTION_CONTACTS, $contacts, false );
+		self::update_state( array( 'enrich_cursor' => 0 ) );
+		self::$memo = null;
+
+		return $cleared;
+	}
+
+	/**
 	 * Replace one contact in the cache with a freshly fetched record.
 	 *
 	 * @param array $contact Normalized contact.
