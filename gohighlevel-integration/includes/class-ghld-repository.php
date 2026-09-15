@@ -106,22 +106,33 @@ class GHLD_Repository {
 		}
 
 		$settings = GHLD_Settings::all();
-		$contacts = array();
-		foreach ( $raw as $item ) {
-			if ( is_array( $item ) ) {
-				$contacts[] = GHLD_Contact::normalize( $item, $fields, $settings );
+
+		// Index what is already cached: the contact list carries fewer custom
+		// values than a single-contact fetch, so rebuilding from it would throw
+		// away every headshot enrichment has collected.
+		$previous = array();
+		foreach ( (array) get_option( self::OPTION_CONTACTS, array() ) as $cached ) {
+			if ( ! empty( $cached['id'] ) ) {
+				$previous[ $cached['id'] ] = $cached;
 			}
 		}
 
-		if ( ! empty( $settings['deep_sync'] ) ) {
-			$state = self::state();
-			self::update_state(
-				array(
-					'enrich_pass'   => ( isset( $state['enrich_pass'] ) ? (int) $state['enrich_pass'] : 0 ) + 1,
-					'enrich_cursor' => 0,
-				)
-			);
+		$contacts = array();
+		foreach ( $raw as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
 
+			$contact = GHLD_Contact::normalize( $item, $fields, $settings );
+
+			if ( isset( $previous[ $contact['id'] ] ) ) {
+				$contact = self::carry_over( $contact, $previous[ $contact['id'] ], $settings );
+			}
+
+			$contacts[] = $contact;
+		}
+
+		if ( ! empty( $settings['deep_sync'] ) ) {
 			$contacts = self::enrich( $contacts, $client, $fields, $settings );
 		}
 
@@ -192,7 +203,13 @@ class GHLD_Repository {
 		$resolved = 0;
 		$offset   = 0;
 
-		$pass = isset( $state['enrich_pass'] ) ? (int) $state['enrich_pass'] : 1;
+		/**
+		 * Filter how long before a contact with no headshot is asked again.
+		 *
+		 * @param int $cooldown Seconds.
+		 */
+		$cooldown = (int) apply_filters( 'ghld_enrich_cooldown', DAY_IN_SECONDS );
+		$now      = time();
 
 		for ( $offset = 0; $offset < $total; $offset++ ) {
 			if ( $fetched >= $cap || microtime( true ) >= $deadline ) {
@@ -205,9 +222,9 @@ class GHLD_Repository {
 				continue;
 			}
 
-			// Already fetched during this pass: it simply has no headshot, so
-			// asking again would spin forever.
-			if ( isset( $contacts[ $index ]['enrich_pass'] ) && (int) $contacts[ $index ]['enrich_pass'] === $pass ) {
+			// Asked recently and came back without one: it simply has no
+			// headshot, so asking again every sync would spin forever.
+			if ( ! empty( $contacts[ $index ]['enriched_at'] ) && ( $now - (int) $contacts[ $index ]['enriched_at'] ) < $cooldown ) {
 				continue;
 			}
 
@@ -228,15 +245,15 @@ class GHLD_Repository {
 				}
 			}
 
-			$contacts[ $index ]['enrich_pass'] = $pass;
+			$contacts[ $index ]['enriched_at'] = $now;
 		}
 
 		// How many are still waiting, so the admin can say whether pressing
 		// Sync again will achieve anything.
 		$remaining = 0;
 		foreach ( $contacts as $contact ) {
-			$done = isset( $contact['enrich_pass'] ) && (int) $contact['enrich_pass'] === $pass;
-			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) && ! $done ) {
+			$recent = ! empty( $contact['enriched_at'] ) && ( $now - (int) $contact['enriched_at'] ) < $cooldown;
+			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) && ! $recent ) {
 				$remaining++;
 			}
 		}
@@ -251,6 +268,30 @@ class GHLD_Repository {
 		);
 
 		return $contacts;
+	}
+
+	/**
+	 * Keep the richer parts of a cached contact when rebuilding from the list.
+	 *
+	 * @param array $fresh    Contact as the contact list describes it.
+	 * @param array $cached   The copy already held, possibly enriched.
+	 * @param array $settings Plugin settings.
+	 * @return array
+	 */
+	protected static function carry_over( array $fresh, array $cached, array $settings ) {
+		$cached_custom = isset( $cached['custom'] ) && is_array( $cached['custom'] ) ? $cached['custom'] : array();
+
+		if ( count( $cached_custom ) > count( $fresh['custom'] ) ) {
+			$fresh['custom']    = $cached_custom;
+			$fresh['file_urls'] = isset( $cached['file_urls'] ) ? $cached['file_urls'] : array();
+			$fresh              = GHLD_Contact::apply_mapping( $fresh, $settings );
+		}
+
+		if ( ! empty( $cached['enriched_at'] ) ) {
+			$fresh['enriched_at'] = (int) $cached['enriched_at'];
+		}
+
+		return $fresh;
 	}
 
 	/**

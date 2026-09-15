@@ -50,6 +50,21 @@ function ghld_same( $expected, $actual, $message ) {
 }
 
 /**
+ * Call a protected static method.
+ *
+ * @param string $class  Class name.
+ * @param string $method Method name.
+ * @param array  $args   Arguments.
+ * @return mixed
+ */
+function ghld_call_protected( $class, $method, array $args ) {
+	$reflection = new ReflectionMethod( $class, $method );
+	$reflection->setAccessible( true );
+
+	return $reflection->invokeArgs( null, $args );
+}
+
+/**
  * Find one contact in a result set by display name.
  *
  * @param array  $items Result items.
@@ -1135,6 +1150,76 @@ $text_only = GHLD_Contact::normalize(
 	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
 );
 ghld_same( '', $text_only['photo'], 'a plain URL in a text field is never mistaken for a headshot' );
+
+/* -------------------------------------------------------------------------
+ * A sync must not undo what enrichment gathered
+ * ---------------------------------------------------------------------- */
+
+$photo_settings = array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) );
+$photo_defs     = array(
+	'fld_mpp' => array(
+		'key'  => 'member_profile_photo',
+		'name' => 'Member Profile Photo',
+		'type' => 'FILE_UPLOAD',
+	),
+);
+
+// What an individual fetch produced: custom values, including the upload.
+$enriched = GHLD_Contact::normalize(
+	array(
+		'id'           => 'carry1',
+		'contactName'  => 'Ayman Aboulela',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => $two_uploads,
+			),
+		),
+	),
+	$photo_defs,
+	$photo_settings
+);
+$enriched['enriched_at'] = time();
+ghld_ok( '' !== $enriched['photo'], 'the enriched copy has a headshot to lose' );
+
+// What the contact list gives back for the same person: no custom values.
+$from_list = GHLD_Contact::normalize(
+	array(
+		'id'          => 'carry1',
+		'contactName' => 'Ayman Aboulela',
+	),
+	$photo_defs,
+	$photo_settings
+);
+ghld_same( '', $from_list['photo'], 'the contact list alone carries no headshot' );
+
+$merged = ghld_call_protected( 'GHLD_Repository', 'carry_over', array( $from_list, $enriched, $photo_settings ) );
+
+ghld_same( $enriched['photo'], $merged['photo'], 'a full sync keeps the headshot enrichment found' );
+ghld_same( $enriched['custom'], $merged['custom'], 'and the custom values it came from' );
+ghld_same( $enriched['enriched_at'], $merged['enriched_at'], 'and remembers the contact was already asked' );
+
+// The opposite direction: a fuller fresh record must still win.
+$richer = GHLD_Contact::normalize(
+	array(
+		'id'           => 'carry1',
+		'contactName'  => 'Ayman Aboulela',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => $two_uploads,
+			),
+			array(
+				'id'    => 'fld_other',
+				'value' => 'Cardiology',
+			),
+		),
+	),
+	$photo_defs,
+	$photo_settings
+);
+$kept = ghld_call_protected( 'GHLD_Repository', 'carry_over', array( $richer, $enriched, $photo_settings ) );
+ghld_same( count( $richer['custom'] ), count( $kept['custom'] ), 'a fresher, fuller record is not overwritten by the cached one' );
 
 /* -------------------------------------------------------------------------
  * Failure handling
