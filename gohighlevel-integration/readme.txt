@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.8.1
+Stable tag: 1.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.8.2 =
+* Use the live upload in a file-upload field rather than one that was replaced.
+  A replaced file stays in the field flagged deleted, and its URL no longer
+  serves the image — which is why headshots came through as initials.
 
 = 1.8.1 =
 * Turn "Fetch full records" on for sites that already saved their settings — a

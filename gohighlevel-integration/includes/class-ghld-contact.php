@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '5';
+	const DERIVED_VERSION = '6';
 
 	/**
 	 * Normalize one contact.
@@ -250,21 +250,60 @@ class GHLD_Contact {
 			return trim( (string) $value['url'] );
 		}
 
-		$parts = array();
+		$entries = array();
 		foreach ( $value as $item ) {
 			if ( is_scalar( $item ) ) {
-				$parts[] = (string) $item;
+				$entries[] = array(
+					'value'   => (string) $item,
+					'deleted' => false,
+					'image'   => true,
+				);
 				continue;
 			}
 			if ( ! is_array( $item ) ) {
 				continue;
 			}
+
+			$found = '';
 			foreach ( array( 'url', 'value', 'name' ) as $property ) {
 				if ( isset( $item[ $property ] ) && is_scalar( $item[ $property ] ) ) {
-					$parts[] = (string) $item[ $property ];
+					$found = (string) $item[ $property ];
 					break;
 				}
 			}
+			if ( '' === $found ) {
+				continue;
+			}
+
+			$meta = ( isset( $item['meta'] ) && is_array( $item['meta'] ) ) ? $item['meta'] : array();
+
+			$entries[] = array(
+				'value'   => $found,
+				'deleted' => ! empty( $meta['deleted'] ),
+				'image'   => empty( $meta['mimetype'] ) || 0 === strpos( (string) $meta['mimetype'], 'image/' ),
+			);
+		}
+
+		// Replacing an upload leaves the old one in the field, flagged deleted,
+		// and its URL no longer serves the file. Live uploads come first, and
+		// images ahead of other attachments, so the first URL is the usable one.
+		usort(
+			$entries,
+			static function ( $a, $b ) {
+				if ( $a['deleted'] !== $b['deleted'] ) {
+					return $a['deleted'] ? 1 : -1;
+				}
+				if ( $a['image'] !== $b['image'] ) {
+					return $a['image'] ? -1 : 1;
+				}
+
+				return 0;
+			}
+		);
+
+		$parts = array();
+		foreach ( $entries as $entry ) {
+			$parts[] = $entry['value'];
 		}
 
 		return trim( implode( ', ', $parts ) );

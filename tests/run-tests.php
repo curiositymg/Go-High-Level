@@ -974,6 +974,72 @@ $upload_value = array(
 	),
 );
 
+// The real field holds both: a replaced upload flagged deleted, and the live
+// one. Deleted first, exactly as GoHighLevel orders it.
+$two_uploads = array(
+	'a214983a-5e71-446d-b3ed-e831e5241f25' => array(
+		'meta'       => array(
+			'originalname' => 'old.jpg',
+			'mimetype'     => 'image/jpeg',
+			'deleted'      => true,
+		),
+		'url'        => 'https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD',
+		'documentId' => 'kKg9m01DoiWvuDN6GhxD',
+	),
+	'7316bbc6-0b6e-40d4-808f-83852c065fe2' => array(
+		'meta'       => array(
+			'originalname' => 'stock-photo-golden-retriever.jpg',
+			'mimetype'     => 'image/jpeg',
+			'size'         => 414306,
+		),
+		'url'        => 'https://services.leadconnectorhq.com/documents/download/C4H0ySqrrNoo5JQMnsVa',
+		'documentId' => 'C4H0ySqrrNoo5JQMnsVa',
+	),
+);
+
+$replaced = GHLD_Contact::normalize(
+	array(
+		'id'           => 'u2',
+		'contactName'  => 'Replaced Upload',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => $two_uploads,
+			),
+		),
+	),
+	array(
+		'fld_mpp' => array(
+			'key'  => 'member_profile_photo',
+			'name' => 'Member Profile Photo',
+			'type' => 'FILE_UPLOAD',
+		),
+	),
+	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
+);
+
+ghld_same(
+	'https://services.leadconnectorhq.com/documents/download/C4H0ySqrrNoo5JQMnsVa',
+	$replaced['photo'],
+	'the live upload wins over one that was replaced'
+);
+ghld_ok(
+	false === strpos( $replaced['photo'], 'kKg9m01DoiWvuDN6GhxD' ),
+	'the deleted upload is never used as the headshot'
+);
+
+$replaced_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $replaced,
+		'scope'   => GHLD_Shortcode::build_scope( array( 'show' => 'photo' ) ),
+	)
+);
+ghld_ok(
+	false !== strpos( $replaced_card, 'src="https://services.leadconnectorhq.com/documents/download/C4H0ySqrrNoo5JQMnsVa"' ),
+	'the card renders the live upload as the img src'
+);
+
 $uploaded = GHLD_Contact::normalize(
 	array(
 		'id'           => 'u1',
