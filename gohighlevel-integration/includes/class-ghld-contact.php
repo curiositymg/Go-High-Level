@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '6';
+	const DERIVED_VERSION = '7';
 
 	/**
 	 * Normalize one contact.
@@ -55,7 +55,8 @@ class GHLD_Contact {
 		$last  = self::capitalize_name( $last );
 		$name  = self::capitalize_name( $name );
 
-		$custom = self::custom_values( $raw, $field_map );
+		$custom_data = self::custom_values( $raw, $field_map );
+		$custom      = $custom_data['values'];
 		$email  = sanitize_email( self::str( $raw, 'email' ) );
 		$photo  = '';
 		foreach ( array( 'profilePhoto', 'profile_photo', 'avatar', 'photoUrl' ) as $key ) {
@@ -84,6 +85,11 @@ class GHLD_Contact {
 			'date_added'    => self::timestamp( self::first_str( $raw, array( 'dateAdded', 'createdAt', 'dateUpdated' ) ) ),
 			'tags'          => self::tags( $raw ),
 			'custom'        => $custom,
+			// URLs that arrived as uploaded files, live ones first. The payload
+			// identifies custom fields by ID only, so when the field
+			// definitions are unavailable this is the one way left to find an
+			// uploaded headshot.
+			'file_urls'     => $custom_data['files'],
 			'profile_photo' => $photo,
 		);
 
@@ -197,8 +203,10 @@ class GHLD_Contact {
 		}
 
 		$values = array();
+		$files  = array();
 		foreach ( $entries as $entry ) {
-			$value = self::flatten_value( $entry['value'] );
+			$is_file = self::is_document_value( $entry['value'] );
+			$value   = self::flatten_value( $entry['value'] );
 			if ( '' === $value ) {
 				continue;
 			}
@@ -217,6 +225,10 @@ class GHLD_Contact {
 
 			$values[ $key ] = $value;
 
+			if ( $is_file ) {
+				$files[] = $value;
+			}
+
 			// Keep the payload's own key as an alias when it differs, so either
 			// spelling can be mapped.
 			if ( '' !== $entry['key'] && $entry['key'] !== $key && ! isset( $values[ $entry['key'] ] ) ) {
@@ -224,7 +236,33 @@ class GHLD_Contact {
 			}
 		}
 
-		return $values;
+		return array(
+			'values' => $values,
+			'files'  => $files,
+		);
+	}
+
+	/**
+	 * Whether a raw custom value is an uploaded file rather than text.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return bool
+	 */
+	protected static function is_document_value( $value ) {
+		if ( ! is_array( $value ) ) {
+			return false;
+		}
+		if ( isset( $value['url'] ) || isset( $value['documentId'] ) ) {
+			return true;
+		}
+
+		foreach ( $value as $item ) {
+			if ( is_array( $item ) && ( isset( $item['url'] ) || isset( $item['documentId'] ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -448,6 +486,19 @@ class GHLD_Contact {
 			$url = isset( $custom[ $key ] ) ? self::first_url( $custom[ $key ] ) : '';
 			if ( '' !== $url ) {
 				return self::localized( $url, $contact );
+			}
+
+			// The mapped key isn't there. GoHighLevel identifies custom fields
+			// by ID in the contact payload, so this is what a missing or
+			// unreadable field-definition list looks like — the upload is
+			// present, just not under a name we can match. Use it anyway.
+			if ( ! empty( $contact['file_urls'] ) && is_array( $contact['file_urls'] ) ) {
+				foreach ( $contact['file_urls'] as $candidate ) {
+					$url = self::first_url( $candidate );
+					if ( '' !== $url ) {
+						return self::localized( $url, $contact );
+					}
+				}
 			}
 		}
 

@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.8.3
+Stable tag: 1.8.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,14 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.8.4 =
+* Clear the contact cache on upgrade. Cached values were flattened by whichever
+  version cached them, so a contact stored before uploads were ordered live-first
+  kept a replaced file's dead URL — and since that counted as having a photo,
+  nothing re-fetched it. The 1.8.2 fix could not reach existing data.
+* Fall back to any uploaded file when the mapped key cannot be matched, so a
+  headshot still resolves if the custom field definitions are unavailable.
 
 = 1.8.3 =
 * "Inspect a contact" now shows the headshot end to end: the URL resolved from

@@ -1089,6 +1089,54 @@ ghld_same( 'jpg', GHLD_Photos::extension_for( 'application/octet-stream' ), 'an 
 ghld_same( '', GHLD_Photos::localize( 'https://services.leadconnectorhq.com/documents/download/abc', 'c1', false ), 'no download happens while rendering' );
 
 /* -------------------------------------------------------------------------
+ * An uploaded headshot with no usable field definitions
+ * ---------------------------------------------------------------------- */
+
+// GoHighLevel identifies custom fields by ID in the contact payload, with no
+// field key, so without the definitions nothing matches cf:member_profile_photo.
+$unmappable = GHLD_Contact::normalize(
+	array(
+		'id'           => 'u3',
+		'contactName'  => 'No Definitions',
+		'customFields' => array(
+			array(
+				'id'    => 'WQdGude1zQ2bIljJx6vB',
+				'value' => 'MD',
+			),
+			array(
+				'id'    => 'E2TFT7iBjzqpkFEZQ9o8',
+				'value' => $two_uploads,
+			),
+		),
+	),
+	array(),
+	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
+);
+
+ghld_same(
+	'https://services.leadconnectorhq.com/documents/download/C4H0ySqrrNoo5JQMnsVa',
+	$unmappable['photo'],
+	'an uploaded headshot is found even with no field definitions to match on'
+);
+ghld_ok( ! empty( $unmappable['file_urls'] ), 'uploaded files are tracked separately from text values' );
+
+$text_only = GHLD_Contact::normalize(
+	array(
+		'id'           => 'u4',
+		'contactName'  => 'Text Only',
+		'customFields' => array(
+			array(
+				'id'    => '6AmvayNaOusB6sOQZaMV',
+				'value' => 'https://example.com/a-website',
+			),
+		),
+	),
+	array(),
+	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
+);
+ghld_same( '', $text_only['photo'], 'a plain URL in a text field is never mistaken for a headshot' );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 
