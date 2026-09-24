@@ -397,38 +397,34 @@ class GHLD_Admin {
 			<?php endif; ?>
 
 			<?php
-			// The button belongs here whenever the two differ — including when
-			// the field has been emptied in GoHighLevel and the cache is the
-			// only place the old image still exists. Tying it to the live
-			// payload having a headshot hid it in exactly that case.
-			if ( ! empty( $data['name'] ) && $live !== $stored ) :
-				?>
-				<div class="notice notice-warning" style="padding:8px 12px">
-					<p>
-						<?php if ( '' === $live ) : ?>
-							<?php esc_html_e( 'This contact has no headshot in GoHighLevel any more, but the cache still holds one — which is what the directory is showing.', 'gohighlevel-integration' ); ?>
-						<?php else : ?>
-							<?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?>
-						<?php endif; ?>
-					</p>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-						<input type="hidden" name="action" value="ghld_store" />
-						<?php wp_nonce_field( 'ghld_store' ); ?>
-						<button type="submit" class="button button-primary">
-							<?php
-							echo ( '' === $live )
-								? esc_html__( 'Clear this contact in the cache now', 'gohighlevel-integration' )
-								: esc_html__( 'Put this contact in the cache now', 'gohighlevel-integration' );
-							?>
-						</button>
-						<span class="description"><?php esc_html_e( 'Updates this one contact immediately, without waiting for the whole sync.', 'gohighlevel-integration' ); ?></span>
-					</form>
-				</div>
-			<?php elseif ( ! empty( $data['name'] ) ) : ?>
-				<p class="notice notice-success" style="padding:8px 12px">
-					<?php esc_html_e( 'The cache matches GoHighLevel for this contact — nothing to update.', 'gohighlevel-integration' ); ?>
-				</p>
-			<?php endif; ?>
+			// Always offered. This is a manual tool: hiding it because the two
+			// happen to agree, or because the contact was reached without
+			// typing a name, only ever means it is missing when someone goes
+			// looking for it. Storing a contact that already matches is a
+			// no-op, which is a far better failure than an absent button.
+			$ghld_state = ( $live === $stored )
+				? __( 'The cache already matches GoHighLevel for this contact.', 'gohighlevel-integration' )
+				: (
+					( '' === $live )
+						? __( 'This contact has no headshot in GoHighLevel any more, but the cache still holds one — which is what the directory is showing.', 'gohighlevel-integration' )
+						: __( 'The live payload resolves a headshot but the cached copy does not match it. The directory renders from the cache, never live.', 'gohighlevel-integration' )
+				);
+			?>
+			<div class="notice <?php echo ( $live === $stored ) ? 'notice-success' : 'notice-warning'; ?>" style="padding:8px 12px">
+				<p><?php echo esc_html( $ghld_state ); ?></p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="ghld_store" />
+					<?php wp_nonce_field( 'ghld_store' ); ?>
+					<button type="submit" class="button button-primary">
+						<?php
+						echo ( '' === $live && '' !== $stored )
+							? esc_html__( 'Clear this contact in the cache now', 'gohighlevel-integration' )
+							: esc_html__( 'Put this contact in the cache now', 'gohighlevel-integration' );
+						?>
+					</button>
+					<span class="description"><?php esc_html_e( 'Writes what was just fetched into the cache for this one contact, without waiting for the whole sync.', 'gohighlevel-integration' ); ?></span>
+				</form>
+			</div>
 
 			<p>
 				<?php if ( empty( $custom ) ) : ?>
