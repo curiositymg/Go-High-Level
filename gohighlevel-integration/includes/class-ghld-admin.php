@@ -29,6 +29,8 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_inspect', array( __CLASS__, 'handle_inspect' ) );
 		add_action( 'admin_post_ghld_store', array( __CLASS__, 'handle_store' ) );
 		add_action( 'admin_post_ghld_recheck', array( __CLASS__, 'handle_recheck' ) );
+		add_action( 'wp_ajax_ghld_enrich_batch', array( __CLASS__, 'handle_enrich_batch' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
@@ -98,6 +100,60 @@ class GHLD_Admin {
 				(int) $result
 			)
 		);
+	}
+
+	/**
+	 * Load the progress-loop script on the settings screen only.
+	 *
+	 * @param string $hook Current admin page.
+	 * @return void
+	 */
+	public static function enqueue_assets( $hook ) {
+		if ( 'settings_page_' . self::PAGE !== $hook ) {
+			return;
+		}
+
+		wp_enqueue_script( 'ghld-admin', GHLD_URL . 'assets/js/admin.js', array(), GHLD_VERSION, true );
+		wp_localize_script(
+			'ghld-admin',
+			'GHLDAdmin',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'ghld_enrich_batch' ),
+				'i18n'    => array(
+					'starting' => __( 'Starting…', 'gohighlevel-integration' ),
+					/* translators: 1: contacts done, 2: total contacts, 3: headshots found. */
+					'progress' => __( '%1$s of %2$s contacts checked — %3$s headshots so far.', 'gohighlevel-integration' ),
+					/* translators: %s: headshots found. */
+					'done'     => __( 'Finished. %s contacts have a headshot.', 'gohighlevel-integration' ),
+					'failed'   => __( 'That run failed. Press the button again to carry on from where it stopped.', 'gohighlevel-integration' ),
+					'stalled'  => __( 'Stopped after a lot of batches without finishing — press again to continue.', 'gohighlevel-integration' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Run one enrichment batch for the progress loop.
+	 *
+	 * @return void
+	 */
+	public static function handle_enrich_batch() {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do that.', 'gohighlevel-integration' ) ), 403 );
+		}
+
+		check_ajax_referer( 'ghld_enrich_batch', 'nonce' );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$reset  = ! empty( $_POST['reset'] ) && '1' === (string) $_POST['reset'];
+		$result = GHLD_Repository::enrich_once( 10, $reset );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( $result );
 	}
 
 	/**
@@ -795,6 +851,19 @@ class GHLD_Admin {
 					</form>
 				<?php endforeach; ?>
 			</p>
+			<p>
+				<button type="button" class="button button-primary" data-ghld-fetch-all>
+					<?php esc_html_e( 'Fetch every contact now', 'gohighlevel-integration' ); ?>
+				</button>
+				<span data-ghld-fetch-status style="margin-left:.75em"></span>
+			</p>
+			<div style="max-width:32em;height:6px;background:#dcdcde;border-radius:3px;overflow:hidden;margin:0 0 1em">
+				<div data-ghld-fetch-bar style="width:0;height:100%;background:#2271b1;transition:width .2s"></div>
+			</div>
+			<p class="description" style="margin-bottom:1.5em">
+				<?php esc_html_e( 'Works through every contact in batches without waiting for the background schedule, and shows how far it has got. Leave the page open until it finishes; if you close it, press the button again and it carries on from where it stopped.', 'gohighlevel-integration' ); ?>
+			</p>
+
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="ghld_inspect" />
 				<?php wp_nonce_field( 'ghld_inspect' ); ?>

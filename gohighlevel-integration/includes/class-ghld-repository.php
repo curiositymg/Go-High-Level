@@ -177,9 +177,11 @@ class GHLD_Repository {
 	 * @param GHLD_Client $client   API client.
 	 * @param array       $fields   Custom field definitions.
 	 * @param array       $settings Plugin settings.
+	 * @param float|null  $seconds  Time budget override, for a caller that is
+	 *                              driving the batches itself.
 	 * @return array
 	 */
-	protected static function enrich( array $contacts, GHLD_Client $client, array $fields, array $settings ) {
+	protected static function enrich( array $contacts, GHLD_Client $client, array $fields, array $settings, $seconds = null ) {
 		$total = count( $contacts );
 		if ( 0 === $total ) {
 			return $contacts;
@@ -194,7 +196,9 @@ class GHLD_Repository {
 		 *
 		 * @param float $seconds Seconds per run.
 		 */
-		$seconds  = max( 1, (float) apply_filters( 'ghld_enrich_seconds', 20 ) );
+		$seconds  = ( null === $seconds )
+			? max( 1, (float) apply_filters( 'ghld_enrich_seconds', 20 ) )
+			: max( 1, (float) $seconds );
 		$cap      = max( 1, (int) apply_filters( 'ghld_enrich_batch', 500 ) );
 		$deadline = microtime( true ) + $seconds;
 
@@ -322,6 +326,53 @@ class GHLD_Repository {
 		self::$memo = null;
 
 		self::schedule_continuation();
+	}
+
+	/**
+	 * Run one enrichment batch and report where it got to.
+	 *
+	 * For a caller that drives the batches itself — the admin's progress bar —
+	 * rather than waiting on the background schedule.
+	 *
+	 * @param float $seconds Time budget for this batch.
+	 * @param bool  $reset   Clear the per-contact cooldown first.
+	 * @return array|WP_Error
+	 */
+	public static function enrich_once( $seconds = 10, $reset = false ) {
+		if ( ! GHLD_Settings::is_configured() ) {
+			return new WP_Error( 'ghld_not_configured', __( 'Add your GoHighLevel API token first.', 'gohighlevel-integration' ) );
+		}
+
+		if ( $reset ) {
+			self::clear_enrich_cooldown();
+		}
+
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		if ( ! is_array( $contacts ) || empty( $contacts ) ) {
+			return new WP_Error( 'ghld_no_contacts', __( 'There are no cached contacts yet — press "Sync now" first.', 'gohighlevel-integration' ) );
+		}
+
+		$contacts = self::enrich( $contacts, new GHLD_Client(), self::custom_fields(), GHLD_Settings::all(), $seconds );
+		$contacts = self::localize_photos( $contacts );
+
+		update_option( self::OPTION_CONTACTS, $contacts, false );
+		self::$memo = null;
+
+		$state = self::state();
+		$with  = 0;
+		foreach ( $contacts as $contact ) {
+			if ( ! empty( $contact['photo'] ) ) {
+				$with++;
+			}
+		}
+
+		return array(
+			'total'     => count( $contacts ),
+			'remaining' => isset( $state['enrich_remaining'] ) ? (int) $state['enrich_remaining'] : 0,
+			'fetched'   => isset( $state['enrich_fetched'] ) ? (int) $state['enrich_fetched'] : 0,
+			'resolved'  => isset( $state['enrich_resolved'] ) ? (int) $state['enrich_resolved'] : 0,
+			'photos'    => $with,
+		);
 	}
 
 	/**
