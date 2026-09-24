@@ -983,7 +983,6 @@ $upload_value = array(
 			'originalname' => 'stock-photo-golden-retriever.jpg',
 			'mimetype'     => 'image/jpeg',
 			'size'         => 414306,
-			'deleted'      => true,
 		),
 		'url'        => 'https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD',
 		'documentId' => 'kKg9m01DoiWvuDN6GhxD',
@@ -1389,6 +1388,68 @@ ghld_same( $page_content, GHLD_Shortcode::isolate_profile( $page_content ), 'tur
 
 $_GET = array();
 update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
+ * Clearing the field in GoHighLevel clears the headshot
+ * ---------------------------------------------------------------------- */
+
+// Emptying a file-upload field does not remove the entries: every upload the
+// field ever held stays, flagged deleted.
+$all_deleted = array(
+	'd1931bd6-a23b-4b67-bdcc-f1193086de81' => array(
+		'meta'       => array(
+			'originalname' => 'beach.jpg',
+			'mimetype'     => 'image/jpeg',
+			'deleted'      => true,
+		),
+		'url'        => 'https://services.leadconnectorhq.com/documents/download/iqgAsv7O80w610HvTaQU',
+		'documentId' => 'iqgAsv7O80w610HvTaQU',
+	),
+	'54049598-6868-4545-b98e-2eaa3670f3c0' => array(
+		'meta'       => array(
+			'originalname' => 'stock-photo-golden-retriever.jpg',
+			'mimetype'     => 'image/jpeg',
+			'deleted'      => true,
+		),
+		'url'        => 'https://services.leadconnectorhq.com/documents/download/VdveR30LSI2ZyO8i5gSB',
+		'documentId' => 'VdveR30LSI2ZyO8i5gSB',
+	),
+);
+
+$emptied = GHLD_Contact::normalize(
+	array(
+		'id'           => 'e1',
+		'contactName'  => 'Emptied Field',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_mpp',
+				'value' => $all_deleted,
+			),
+		),
+	),
+	array(
+		'fld_mpp' => array(
+			'key'  => 'member_profile_photo',
+			'name' => 'Member Profile Photo',
+			'type' => 'FILE_UPLOAD',
+		),
+	),
+	array_merge( GHLD_Settings::defaults(), array( 'photo_field' => 'cf:member_profile_photo' ) )
+);
+
+ghld_same( '', $emptied['photo'], 'clearing the field leaves no headshot, not the last deleted one' );
+ghld_same( '', isset( $emptied['custom']['member_profile_photo'] ) ? $emptied['custom']['member_profile_photo'] : '', 'and no value behind it' );
+ghld_ok( empty( $emptied['file_urls'] ), 'deleted uploads are not offered as files either' );
+
+$emptied_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $emptied,
+		'scope'   => GHLD_Shortcode::build_scope( array( 'show' => 'photo' ) ),
+	)
+);
+ghld_ok( false === strpos( $emptied_card, 'iqgAsv7O80w610HvTaQU' ), 'the card does not fall back to a deleted upload' );
+ghld_ok( false !== strpos( $emptied_card, 'ghld-avatar-initials' ), 'it shows initials instead' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

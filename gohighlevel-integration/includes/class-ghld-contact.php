@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '7';
+	const DERIVED_VERSION = '8';
 
 	/**
 	 * Normalize one contact.
@@ -322,15 +322,22 @@ class GHLD_Contact {
 			);
 		}
 
-		// Replacing an upload leaves the old one in the field, flagged deleted,
-		// and its URL no longer serves the file. Live uploads come first, and
-		// images ahead of other attachments, so the first URL is the usable one.
+		// A file-upload field keeps every file it has ever held. Replacing one
+		// flags the old entry deleted; clearing the field flags them all. A
+		// deleted entry is not a lesser value to fall back on, it is a file
+		// that is no longer there, so it is dropped outright — otherwise
+		// emptying the field in GoHighLevel leaves the old image on the site.
+		$live = array();
+		foreach ( $entries as $entry ) {
+			if ( ! $entry['deleted'] ) {
+				$live[] = $entry;
+			}
+		}
+
+		// Images ahead of other attachments, so the first URL is the usable one.
 		usort(
-			$entries,
+			$live,
 			static function ( $a, $b ) {
-				if ( $a['deleted'] !== $b['deleted'] ) {
-					return $a['deleted'] ? 1 : -1;
-				}
 				if ( $a['image'] !== $b['image'] ) {
 					return $a['image'] ? -1 : 1;
 				}
@@ -340,7 +347,7 @@ class GHLD_Contact {
 		);
 
 		$parts = array();
-		foreach ( $entries as $entry ) {
+		foreach ( $live as $entry ) {
 			$parts[] = $entry['value'];
 		}
 

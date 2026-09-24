@@ -179,9 +179,11 @@ class GHLD_Repository {
 	 * @param array       $settings Plugin settings.
 	 * @param float|null  $seconds  Time budget override, for a caller that is
 	 *                              driving the batches itself.
+	 * @param bool        $force    Re-check contacts that already have a
+	 *                              headshot, in case it has since changed.
 	 * @return array
 	 */
-	protected static function enrich( array $contacts, GHLD_Client $client, array $fields, array $settings, $seconds = null ) {
+	protected static function enrich( array $contacts, GHLD_Client $client, array $fields, array $settings, $seconds = null, $force = false ) {
 		$total = count( $contacts );
 		if ( 0 === $total ) {
 			return $contacts;
@@ -223,7 +225,13 @@ class GHLD_Repository {
 
 			$index = ( $cursor + $offset ) % $total;
 
-			if ( ! empty( $contacts[ $index ]['photo'] ) || empty( $contacts[ $index ]['id'] ) ) {
+			if ( empty( $contacts[ $index ]['id'] ) ) {
+				continue;
+			}
+
+			// Normally a contact with a headshot needs nothing; a forced run is
+			// asking whether what we hold is still true, so it checks everyone.
+			if ( ! $force && ! empty( $contacts[ $index ]['photo'] ) ) {
 				continue;
 			}
 
@@ -258,7 +266,7 @@ class GHLD_Repository {
 		$remaining = 0;
 		foreach ( $contacts as $contact ) {
 			$recent = ! empty( $contact['enriched_at'] ) && ( $now - (int) $contact['enriched_at'] ) < $cooldown;
-			if ( empty( $contact['photo'] ) && ! empty( $contact['id'] ) && ! $recent ) {
+			if ( ( $force || empty( $contact['photo'] ) ) && ! empty( $contact['id'] ) && ! $recent ) {
 				$remaining++;
 			}
 		}
@@ -352,7 +360,9 @@ class GHLD_Repository {
 			return new WP_Error( 'ghld_no_contacts', __( 'There are no cached contacts yet — press "Sync now" first.', 'gohighlevel-integration' ) );
 		}
 
-		$contacts = self::enrich( $contacts, new GHLD_Client(), self::custom_fields(), GHLD_Settings::all(), $seconds );
+		// A forced run is the answer to "this contact's photo is wrong", so it
+		// re-reads everyone rather than only filling gaps.
+		$contacts = self::enrich( $contacts, new GHLD_Client(), self::custom_fields(), GHLD_Settings::all(), $seconds, $reset );
 		$contacts = self::localize_photos( $contacts );
 
 		update_option( self::OPTION_CONTACTS, $contacts, false );

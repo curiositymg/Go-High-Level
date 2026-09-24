@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.11.0
+Stable tag: 1.11.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,14 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.11.1 =
+* Clearing a photo field in GoHighLevel now clears it on the site. Every upload
+  a field ever held stays in the payload flagged deleted, and a deleted upload
+  was still being used as a last resort — so emptying the field left the old
+  image showing.
+* "Fetch every contact now" re-checks contacts that already have a headshot,
+  so a photo that changed or was removed is picked up.
 
 = 1.11.0 =
 * "Fetch every contact now" works through the whole location in batches with a
