@@ -390,20 +390,43 @@ class GHLD_Admin {
 					<?php esc_html_e( 'Loaded from that URL, right here:', 'gohighlevel-integration' ); ?><br />
 					<img src="<?php echo esc_url( $live ); ?>" alt="" style="max-width:160px;border-radius:50%;margin-top:.5em" />
 				</p>
-				<?php if ( $live !== $stored ) : ?>
-					<div class="notice notice-warning" style="padding:8px 12px">
-						<p><?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?></p>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-							<input type="hidden" name="action" value="ghld_store" />
-							<?php wp_nonce_field( 'ghld_store' ); ?>
-							<button type="submit" class="button button-primary"><?php esc_html_e( 'Put this contact in the cache now', 'gohighlevel-integration' ); ?></button>
-							<span class="description"><?php esc_html_e( 'Updates this one contact immediately, so you can see it on the page without waiting for the whole sync.', 'gohighlevel-integration' ); ?></span>
-						</form>
-					</div>
-				<?php endif; ?>
-			<?php else : ?>
+			<?php elseif ( '' === $stored ) : ?>
 				<p class="notice notice-error" style="padding:8px 12px">
-					<?php esc_html_e( 'No headshot could be resolved from this payload. The custom field values below are exactly what arrived — if a URL is visible in there, send it over and I can fix the extraction.', 'gohighlevel-integration' ); ?>
+					<?php esc_html_e( 'No headshot in this payload, and none cached. The custom field values below are exactly what arrived.', 'gohighlevel-integration' ); ?>
+				</p>
+			<?php endif; ?>
+
+			<?php
+			// The button belongs here whenever the two differ — including when
+			// the field has been emptied in GoHighLevel and the cache is the
+			// only place the old image still exists. Tying it to the live
+			// payload having a headshot hid it in exactly that case.
+			if ( ! empty( $data['name'] ) && $live !== $stored ) :
+				?>
+				<div class="notice notice-warning" style="padding:8px 12px">
+					<p>
+						<?php if ( '' === $live ) : ?>
+							<?php esc_html_e( 'This contact has no headshot in GoHighLevel any more, but the cache still holds one — which is what the directory is showing.', 'gohighlevel-integration' ); ?>
+						<?php else : ?>
+							<?php esc_html_e( 'The live payload resolves a headshot but the cached copy does not match it. The directory renders from the cache, never live.', 'gohighlevel-integration' ); ?>
+						<?php endif; ?>
+					</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="ghld_store" />
+						<?php wp_nonce_field( 'ghld_store' ); ?>
+						<button type="submit" class="button button-primary">
+							<?php
+							echo ( '' === $live )
+								? esc_html__( 'Clear this contact in the cache now', 'gohighlevel-integration' )
+								: esc_html__( 'Put this contact in the cache now', 'gohighlevel-integration' );
+							?>
+						</button>
+						<span class="description"><?php esc_html_e( 'Updates this one contact immediately, without waiting for the whole sync.', 'gohighlevel-integration' ); ?></span>
+					</form>
+				</div>
+			<?php elseif ( ! empty( $data['name'] ) ) : ?>
+				<p class="notice notice-success" style="padding:8px 12px">
+					<?php esc_html_e( 'The cache matches GoHighLevel for this contact — nothing to update.', 'gohighlevel-integration' ); ?>
 				</p>
 			<?php endif; ?>
 
