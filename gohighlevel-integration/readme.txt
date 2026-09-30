@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.13.1
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,12 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.14.0 =
+* A contact with no headshot shows a placeholder photo rather than initials.
+  A default one ships with the plugin; paste a media library URL to use your own.
+* Specialties read "Specialty: Internal Medicine, Geriatrics".
+* Field labels end with a colon and stay on one line.
 
 = 1.13.1 =
 * The contact page panel can address the physician it sits beside: {name},

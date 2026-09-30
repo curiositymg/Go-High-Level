@@ -49,7 +49,20 @@ $ghld_place = array_filter(
 					height="200"
 				/>
 			<?php else : ?>
-				<span class="ghld-avatar ghld-avatar-large ghld-avatar-initials" aria-hidden="true"><?php echo esc_html( $ghld_contact['initials'] ); ?></span>
+				<?php $ghld_placeholder = GHLD_Settings::default_photo(); ?>
+				<?php if ( '' !== $ghld_placeholder ) : ?>
+					<img
+						class="ghld-avatar ghld-avatar-large ghld-avatar-placeholder"
+						src="<?php echo esc_url( $ghld_placeholder ); ?>"
+						alt=""
+						loading="lazy"
+						decoding="async"
+						width="200"
+						height="200"
+					/>
+				<?php else : ?>
+					<span class="ghld-avatar ghld-avatar-large ghld-avatar-initials" aria-hidden="true"><?php echo esc_html( $ghld_contact['initials'] ); ?></span>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 	<?php endif; ?>
@@ -121,7 +134,15 @@ $ghld_place = array_filter(
 		</div>
 
 		<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
-			<p class="ghld-detail-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
+			<p class="ghld-detail-specialty">
+				<?php
+				printf(
+					/* translators: %s: the contact's specialties. */
+					esc_html__( 'Specialty: %s', 'gohighlevel-integration' ),
+					esc_html( $ghld_contact['specialty'] )
+				);
+				?>
+			</p>
 		<?php endif; ?>
 
 		<?php if ( $ghld_showing( 'bio' ) && '' !== $ghld_contact['bio'] ) : ?>
@@ -157,7 +178,13 @@ $ghld_place = array_filter(
 
 			$ghld_rows .= sprintf(
 				'<div class="ghld-detail-row"><dt class="ghld-detail-label">%1$s</dt><dd class="ghld-detail-value">%2$s</dd></div>',
-				esc_html( $ghld_label ),
+				esc_html(
+					sprintf(
+						/* translators: %s: field name, e.g. Secondary Specialty. */
+						__( '%s:', 'gohighlevel-integration' ),
+						$ghld_label
+					)
+				),
 				esc_html( $ghld_value )
 			);
 		}

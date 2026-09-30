@@ -53,6 +53,7 @@ class GHLD_Settings {
 			// modal_show so existing installs do not lose their choices.
 			'modal_show'    => array( 'photo', 'title', 'specialty', 'company', 'location', 'address', 'phone', 'fax', 'tags', 'bio' ),
 			'use_gravatar'  => 0,
+			'default_photo' => '',
 			'columns'       => 3,
 			'per_page'      => 24,
 			'orderby'       => 'first_name',
@@ -218,6 +219,7 @@ class GHLD_Settings {
 		$clean['fax_field']     = isset( $input['fax_field'] ) ? sanitize_text_field( $input['fax_field'] ) : '';
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
+		$clean['default_photo'] = isset( $input['default_photo'] ) ? esc_url_raw( trim( $input['default_photo'] ) ) : '';
 		$clean['modal']         = empty( $input['modal'] ) ? 0 : 1;
 		$clean['view']          = self::sanitize_choice( isset( $input['view'] ) ? $input['view'] : '', self::view_choices(), 'page' );
 		$clean['noindex_generated'] = empty( $input['noindex_generated'] ) ? 0 : 1;
@@ -254,6 +256,32 @@ class GHLD_Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * The image shown for a contact with no headshot.
+	 *
+	 * Deliberately not written into the contact's own photo value: enrichment
+	 * decides who still needs fetching by whether they have one, so a
+	 * placeholder stored there would tell it everybody was done.
+	 *
+	 * @return string URL, or '' to fall back to initials.
+	 */
+	public static function default_photo() {
+		$url = (string) self::get( 'default_photo', '' );
+
+		if ( '' === $url ) {
+			$url = GHLD_URL . 'assets/images/default-headshot.jpg';
+		}
+
+		/**
+		 * Filter the placeholder shown for a contact with no headshot.
+		 *
+		 * Return '' for the initials circle instead.
+		 *
+		 * @param string $url Placeholder URL.
+		 */
+		return (string) apply_filters( 'ghld_default_photo', $url );
 	}
 
 	/**

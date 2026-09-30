@@ -55,7 +55,20 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 					height="160"
 				/>
 			<?php else : ?>
-				<span class="ghld-avatar ghld-avatar-initials" aria-hidden="true"><?php echo esc_html( $ghld_contact['initials'] ); ?></span>
+				<?php $ghld_placeholder = GHLD_Settings::default_photo(); ?>
+				<?php if ( '' !== $ghld_placeholder ) : ?>
+					<img
+						class="ghld-avatar ghld-avatar-placeholder"
+						src="<?php echo esc_url( $ghld_placeholder ); ?>"
+						alt=""
+						loading="lazy"
+						decoding="async"
+						width="160"
+						height="160"
+					/>
+				<?php else : ?>
+					<span class="ghld-avatar ghld-avatar-initials" aria-hidden="true"><?php echo esc_html( $ghld_contact['initials'] ); ?></span>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 	<?php endif; ?>

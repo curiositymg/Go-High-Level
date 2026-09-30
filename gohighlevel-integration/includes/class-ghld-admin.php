@@ -671,6 +671,14 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-default-photo"><?php esc_html_e( 'Default photo', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<input type="url" class="regular-text" id="ghld-default-photo" name="<?php echo esc_attr( $name ); ?>[default_photo]" value="<?php echo esc_attr( (string) $settings['default_photo'] ); ?>" placeholder="<?php esc_attr_e( 'Leave blank for the bundled placeholder', 'gohighlevel-integration' ); ?>" />
+							<p class="description"><?php esc_html_e( 'Shown for a contact with no headshot. Paste a media library URL to use your own; blank uses the placeholder that ships with the plugin.', 'gohighlevel-integration' ); ?></p>
+							<p><img src="<?php echo esc_url( GHLD_Settings::default_photo() ); ?>" alt="" style="width:80px;height:80px;object-fit:cover;border:1px solid #c3c4c7" /></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Gravatar fallback', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>

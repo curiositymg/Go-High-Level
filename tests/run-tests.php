@@ -834,7 +834,7 @@ $bone_detail = GHLD_Template::get(
 	)
 );
 
-ghld_ok( false !== strpos( $bone_detail, '<p class="ghld-detail-specialty">Infectious Disease, Internal Medicine</p>' ), 'the modal prints the specialty as a subtitle' );
+ghld_ok( false !== strpos( $bone_detail, 'Specialty: Infectious Disease, Internal Medicine' ), 'the modal prints the specialties behind their label' );
 ghld_ok( false !== strpos( $bone_detail, 'Panama City Infectious Disease' ), 'the modal prints the practice name' );
 ghld_same( 'William Bone, MD', GHLD_Shortcode::display_name( $bone, $bone_scope ), 'the heading reads "Name, Title"' );
 
@@ -1452,7 +1452,7 @@ $emptied_card = GHLD_Template::get(
 	)
 );
 ghld_ok( false === strpos( $emptied_card, 'iqgAsv7O80w610HvTaQU' ), 'the card does not fall back to a deleted upload' );
-ghld_ok( false !== strpos( $emptied_card, 'ghld-avatar-initials' ), 'it shows initials instead' );
+ghld_ok( false !== strpos( $emptied_card, 'ghld-avatar-placeholder' ), 'it shows the placeholder instead' );
 
 /* -------------------------------------------------------------------------
  * The panel beside a contact
@@ -1540,6 +1540,68 @@ $sanitized = GHLD_Settings::sanitize(
 ghld_ok( false !== strpos( $sanitized['profile_sidebar'], '<p>Keep me</p>' ), 'saving the panel keeps its markup' );
 
 update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
+ * The placeholder for a contact with no headshot
+ * ---------------------------------------------------------------------- */
+
+update_option( 'ghld_settings', $defaults );
+
+$no_photo = GHLD_Contact::normalize(
+	array(
+		'id'          => 'np1',
+		'contactName' => 'No Photo',
+	),
+	array(),
+	$defaults
+);
+
+$no_photo_card = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $no_photo,
+		'scope'   => GHLD_Shortcode::build_scope( array( 'show' => 'photo' ) ),
+	)
+);
+
+ghld_ok( false !== strpos( $no_photo_card, 'ghld-avatar-placeholder' ), 'a contact with no headshot gets the placeholder image' );
+ghld_ok( false !== strpos( $no_photo_card, 'default-headshot.jpg' ), 'which is the one bundled with the plugin' );
+ghld_ok( false === strpos( $no_photo_card, 'ghld-avatar-initials' ), 'and not the initials circle' );
+ghld_same( '', $no_photo['photo'], 'the placeholder is never written into the contact, so enrichment still knows they need one' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'default_photo' => 'https://example.test/ours.png' ) ) );
+$custom_placeholder = GHLD_Template::get(
+	'contact-card',
+	array(
+		'contact' => $no_photo,
+		'scope'   => GHLD_Shortcode::build_scope( array( 'show' => 'photo' ) ),
+	)
+);
+ghld_ok( false !== strpos( $custom_placeholder, 'https://example.test/ours.png' ), 'a placeholder of your own replaces the bundled one' );
+
+update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
+ * Specialty labels
+ * ---------------------------------------------------------------------- */
+
+$labelled = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => array_merge(
+			$bone,
+			array( 'custom' => array( 'secondary_speciality' => 'Geriatrics' ) )
+		),
+		'scope'   => array_merge(
+			$bone_scope,
+			array( 'modal_show' => array( 'specialty', 'cf:secondary_speciality' ) )
+		),
+	)
+);
+
+ghld_ok( false !== strpos( $labelled, 'Specialty: Infectious Disease, Internal Medicine' ), 'the primary specialties are prefixed with their label' );
+ghld_ok( false !== strpos( $labelled, ':</dt>' ), 'a field label ends with a colon' );
+ghld_ok( false !== strpos( $labelled, 'Geriatrics' ), 'and its value sits beside it' );
 
 /* -------------------------------------------------------------------------
  * Failure handling

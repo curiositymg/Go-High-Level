@@ -217,6 +217,10 @@
 	background: rgba(0, 0, 0, 0.06);
 }
 
+.ghld-avatar-placeholder {
+	background: none;
+}
+
 .ghld-avatar-initials {
 	font-size: clamp( 2rem, 22cqw, 4rem );
 	font-weight: 600;
@@ -539,7 +543,9 @@
 }
 
 .ghld-detail-label {
-	flex: 0 0 6rem;
+	flex: 0 0 auto;
+	max-width: 100%;
+	white-space: nowrap;
 	margin: 0;
 	font-size: 0.78rem;
 	font-weight: 600;
