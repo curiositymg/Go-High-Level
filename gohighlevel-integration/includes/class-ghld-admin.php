@@ -721,6 +721,9 @@ class GHLD_Admin {
 								<?php esc_html_e( 'HTML shown to the right of every physician, on every contact page. Shortcodes run, so anything already on the site — a form, a call to action, a banner — can be dropped in with its own shortcode. Leave empty for no panel.', 'gohighlevel-integration' ); ?>
 							</p>
 							<p class="description">
+								<?php esc_html_e( 'Placeholders are filled in per physician: {name}, {first_name}, {last_name}, {title}, {specialty}, {company}, {city}, {state}, {email}, {phone}, {slug}. A shortcode of your own can read the same contact with GHLD_Shortcode::current_contact().', 'gohighlevel-integration' ); ?>
+							</p>
+							<p class="description">
 								<?php esc_html_e( 'PHP is deliberately not executed here: storing runnable code in a settings field means anyone who reaches this screen can run code on the server, and it lives outside version control. For anything needing PHP, filter ghld_profile_sidebar from your theme or a small plugin — it receives this text and returns what is shown.', 'gohighlevel-integration' ); ?>
 							</p>
 						</td>

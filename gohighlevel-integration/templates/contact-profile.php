@@ -53,9 +53,12 @@ $ghld_heading = GHLD_Shortcode::display_name( $ghld_contact, $ghld_scope );
 			<aside class="ghld-profile-sidebar">
 				<?php
 				// Author-supplied markup, filtered on save by the same rule
-				// WordPress uses for its own Custom HTML block. Shortcodes are
-				// run so anything already on the site can be dropped in.
-				echo do_shortcode( $ghld_sidebar ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				// WordPress uses for its own Custom HTML block. Placeholders
+				// are filled and shortcodes run, with the contact made
+				// available so a shortcode can address this physician.
+				GHLD_Shortcode::set_current_contact( $ghld_contact );
+				echo do_shortcode( GHLD_Shortcode::fill_placeholders( $ghld_sidebar, $ghld_contact ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				GHLD_Shortcode::set_current_contact( null );
 				?>
 			</aside>
 		<?php endif; ?>

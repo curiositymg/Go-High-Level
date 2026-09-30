@@ -1496,6 +1496,44 @@ ghld_ok( false !== strpos( $with_sidebar, '<h3>Are you this physician?</h3>' ), 
 ghld_ok( false !== strpos( $with_sidebar, 'SHORTCODE OUTPUT' ), 'shortcodes inside it run' );
 ghld_ok( false === strpos( $with_sidebar, '[ghld_test_shortcode]' ), 'and are not left showing as text' );
 
+// The panel is global but sits beside one physician, so it can name them.
+update_option(
+	'ghld_settings',
+	array_merge(
+		$defaults,
+		array( 'profile_sidebar' => '<p>Are you {name}?</p><p>{specialty} in {city}.</p>' )
+	)
+);
+
+$personal = GHLD_Template::get(
+	'contact-profile',
+	array(
+		'contact' => array_merge( $linked, array( 'specialty' => 'Cardiology', 'city' => 'Panama City' ) ),
+		'scope'   => $default_scope,
+		'back'    => '/directory/',
+	)
+);
+
+ghld_ok( false !== strpos( $personal, 'Are you Rosalind Franklin?' ), 'the panel can name the physician it sits beside' );
+ghld_ok( false !== strpos( $personal, 'Cardiology in Panama City.' ), 'and use their other details' );
+ghld_ok( false === strpos( $personal, '{name}' ), 'no placeholder is left showing' );
+
+ghld_same( null, GHLD_Shortcode::current_contact(), 'the contact is cleared once the panel is rendered' );
+
+update_option(
+	'ghld_settings',
+	array_merge( $defaults, array( 'profile_sidebar' => '<p>Are you {name}?</p>' ) )
+);
+$escaped = GHLD_Template::get(
+	'contact-profile',
+	array(
+		'contact' => array_merge( $linked, array( 'name' => '<script>alert(1)</script>' ) ),
+		'scope'   => $default_scope,
+		'back'    => '/directory/',
+	)
+);
+ghld_ok( false === strpos( $escaped, '<script>alert' ), 'a contact value dropped into the panel is escaped' );
+
 $sanitized = GHLD_Settings::sanitize(
 	array_merge( $defaults, array( 'profile_sidebar' => '<p>Keep me</p>' ) )
 );

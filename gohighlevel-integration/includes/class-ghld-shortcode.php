@@ -121,6 +121,72 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * The contact whose page is being rendered, for code running inside it.
+	 *
+	 * @var array|null
+	 */
+	protected static $current_contact = null;
+
+	/**
+	 * Set or clear the contact being rendered.
+	 *
+	 * @param array|null $contact Normalized contact.
+	 * @return void
+	 */
+	public static function set_current_contact( $contact ) {
+		self::$current_contact = is_array( $contact ) ? $contact : null;
+	}
+
+	/**
+	 * The contact whose page is being rendered.
+	 *
+	 * Lets a shortcode in the contact-page panel address the physician it is
+	 * sitting beside — "Are you Dr. Josten?" needs to know who that is.
+	 *
+	 * @return array|null
+	 */
+	public static function current_contact() {
+		return self::$current_contact;
+	}
+
+	/**
+	 * Replace {placeholders} in the contact-page panel.
+	 *
+	 * Covers the common case without anybody writing PHP at all.
+	 *
+	 * @param string $content Panel markup.
+	 * @param array  $contact Normalized contact.
+	 * @return string
+	 */
+	public static function fill_placeholders( $content, array $contact ) {
+		$content = (string) $content;
+
+		if ( false === strpos( $content, '{' ) ) {
+			return $content;
+		}
+
+		$values = array(
+			'{name}'       => isset( $contact['name'] ) ? $contact['name'] : '',
+			'{first_name}' => isset( $contact['first_name'] ) ? $contact['first_name'] : '',
+			'{last_name}'  => isset( $contact['last_name'] ) ? $contact['last_name'] : '',
+			'{title}'      => isset( $contact['title'] ) ? $contact['title'] : '',
+			'{specialty}'  => isset( $contact['specialty'] ) ? $contact['specialty'] : '',
+			'{company}'    => isset( $contact['company'] ) ? $contact['company'] : '',
+			'{city}'       => isset( $contact['city'] ) ? $contact['city'] : '',
+			'{state}'      => isset( $contact['state'] ) ? $contact['state'] : '',
+			'{email}'      => isset( $contact['email'] ) ? $contact['email'] : '',
+			'{phone}'      => isset( $contact['phone'] ) ? $contact['phone'] : '',
+			'{slug}'       => isset( $contact['slug'] ) ? $contact['slug'] : '',
+		);
+
+		foreach ( $values as $token => $value ) {
+			$content = str_replace( $token, esc_html( (string) $value ), $content );
+		}
+
+		return $content;
+	}
+
+	/**
 	 * Show only the contact on a contact page.
 	 *
 	 * The directory lives on an ordinary page, so everything else that page
