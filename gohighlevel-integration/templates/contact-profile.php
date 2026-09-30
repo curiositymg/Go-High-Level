@@ -22,26 +22,42 @@ $ghld_heading = GHLD_Shortcode::display_name( $ghld_contact, $ghld_scope );
 ?>
 <div class="ghld-directory ghld-profile-wrap" data-ghld-profile>
 	<p class="ghld-profile-back">
-		<a href="<?php echo esc_url( $data['back'] ); ?>" class="ghld-back-link">
+		<a href="<?php echo esc_url( $data['back'] ); ?>" class="btn-blue">
 			<span aria-hidden="true">&larr;</span>
 			<?php esc_html_e( 'See Full Directory', 'gohighlevel-integration' ); ?>
 		</a>
 	</p>
 
-	<article class="ghld-profile">
-		<?php
-		GHLD_Template::render(
-			'contact-detail',
-			array(
-				'contact' => $ghld_contact,
-				'heading' => $ghld_heading,
-				'scope'   => array_merge(
-					$ghld_scope,
-					// A page has room for everything the modal shows.
-					array( 'modal_show' => isset( $ghld_scope['modal_show'] ) ? $ghld_scope['modal_show'] : $ghld_scope['show'] )
-				),
-			)
-		);
-		?>
-	</article>
+	<?php
+	$ghld_sidebar = GHLD_Settings::profile_sidebar();
+	?>
+	<div class="ghld-profile-columns<?php echo ( '' === trim( $ghld_sidebar ) ) ? '' : ' has-sidebar'; ?>">
+		<article class="ghld-profile">
+			<?php
+			GHLD_Template::render(
+				'contact-detail',
+				array(
+					'contact' => $ghld_contact,
+					'heading' => $ghld_heading,
+					'scope'   => array_merge(
+						$ghld_scope,
+						// A page has room for everything the modal shows.
+						array( 'modal_show' => isset( $ghld_scope['modal_show'] ) ? $ghld_scope['modal_show'] : $ghld_scope['show'] )
+					),
+				)
+			);
+			?>
+		</article>
+
+		<?php if ( '' !== trim( $ghld_sidebar ) ) : ?>
+			<aside class="ghld-profile-sidebar">
+				<?php
+				// Author-supplied markup, filtered on save by the same rule
+				// WordPress uses for its own Custom HTML block. Shortcodes are
+				// run so anything already on the site can be dropped in.
+				echo do_shortcode( $ghld_sidebar ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+			</aside>
+		<?php endif; ?>
+	</div>
 </div>

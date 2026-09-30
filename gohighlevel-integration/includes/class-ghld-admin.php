@@ -714,6 +714,18 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-sidebar"><?php esc_html_e( 'Contact page panel', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<textarea id="ghld-sidebar" name="<?php echo esc_attr( $name ); ?>[profile_sidebar]" rows="10" class="large-text code"><?php echo esc_textarea( (string) $settings['profile_sidebar'] ); ?></textarea>
+							<p class="description">
+								<?php esc_html_e( 'HTML shown to the right of every physician, on every contact page. Shortcodes run, so anything already on the site — a form, a call to action, a banner — can be dropped in with its own shortcode. Leave empty for no panel.', 'gohighlevel-integration' ); ?>
+							</p>
+							<p class="description">
+								<?php esc_html_e( 'PHP is deliberately not executed here: storing runnable code in a settings field means anyone who reaches this screen can run code on the server, and it lives outside version control. For anything needing PHP, filter ghld_profile_sidebar from your theme or a small plugin — it receives this text and returns what is shown.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Contact page content', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>

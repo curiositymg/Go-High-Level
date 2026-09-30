@@ -177,6 +177,7 @@ Hooks:
 | --- | --- | --- |
 | `ghld_normalize_contact` | filter | Adjust a contact after normalization, before caching. |
 | `ghld_directory_scope` | filter | Adjust a shortcode's resolved scope. |
+| `ghld_profile_sidebar` | filter | The panel beside every contact — the supported route for PHP-generated content. |
 | `ghld_template_candidates` | filter | Change the template lookup order. |
 | `ghld_after_sync` | action | Runs after a successful sync with the normalized set. |
 
@@ -189,7 +190,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 224 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 235 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

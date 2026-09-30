@@ -559,6 +559,45 @@ function wp_upload_dir() {
 }
 
 /**
+ * Shortcode runner.
+ *
+ * @param string $content Content.
+ * @return string
+ */
+function do_shortcode( $content ) {
+	return str_replace( '[ghld_test_shortcode]', 'SHORTCODE OUTPUT', (string) $content );
+}
+
+/**
+ * Capability check.
+ *
+ * @return bool
+ */
+function current_user_can() {
+	return true;
+}
+
+/**
+ * Post-level HTML filtering.
+ *
+ * @param string $content Content.
+ * @return string
+ */
+function wp_kses_post( $content ) {
+	return preg_replace( '#<script.*?</script>#is', '', (string) $content );
+}
+
+/**
+ * Textarea escaping.
+ *
+ * @param string $text Text.
+ * @return string
+ */
+function esc_textarea( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
  * Singular-view check.
  *
  * @return bool

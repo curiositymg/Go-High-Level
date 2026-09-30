@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,13 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.13.0 =
+* A panel beside every contact, written in the settings: HTML, with shortcodes
+  run, so anything already on the site can be dropped in. Filter
+  ghld_profile_sidebar for anything needing PHP.
+* The back control carries only the theme's btn-blue class, with no styling
+  from the plugin.
 
 = 1.12.0 =
 * Square headshots that fill the card, instead of small circles that threw

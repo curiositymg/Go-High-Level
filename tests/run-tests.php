@@ -1455,6 +1455,55 @@ ghld_ok( false === strpos( $emptied_card, 'iqgAsv7O80w610HvTaQU' ), 'the card do
 ghld_ok( false !== strpos( $emptied_card, 'ghld-avatar-initials' ), 'it shows initials instead' );
 
 /* -------------------------------------------------------------------------
+ * The panel beside a contact
+ * ---------------------------------------------------------------------- */
+
+ghld_same( '', GHLD_Settings::defaults()['profile_sidebar'], 'no panel is shown until one is written' );
+
+$plain_profile = GHLD_Template::get(
+	'contact-profile',
+	array(
+		'contact' => $linked,
+		'scope'   => $default_scope,
+		'back'    => '/directory/',
+	)
+);
+ghld_ok( false === strpos( $plain_profile, 'ghld-profile-sidebar' ), 'an empty panel adds no column' );
+ghld_ok( false === strpos( $plain_profile, 'has-sidebar' ), 'and the contact takes the full width' );
+ghld_ok( false !== strpos( $plain_profile, 'class="btn-blue"' ), 'the back control carries only the theme class' );
+ghld_ok( false === strpos( $plain_profile, 'ghld-back-link' ), 'and none of the plugin\'s own' );
+
+update_option(
+	'ghld_settings',
+	array_merge(
+		$defaults,
+		array( 'profile_sidebar' => '<h3>Are you this physician?</h3><p>Contact us.</p>[ghld_test_shortcode]' )
+	)
+);
+
+$with_sidebar = GHLD_Template::get(
+	'contact-profile',
+	array(
+		'contact' => $linked,
+		'scope'   => $default_scope,
+		'back'    => '/directory/',
+	)
+);
+
+ghld_ok( false !== strpos( $with_sidebar, 'ghld-profile-sidebar' ), 'a written panel gets its own column' );
+ghld_ok( false !== strpos( $with_sidebar, 'has-sidebar' ), 'and the layout makes room for it' );
+ghld_ok( false !== strpos( $with_sidebar, '<h3>Are you this physician?</h3>' ), 'the markup is rendered, not escaped' );
+ghld_ok( false !== strpos( $with_sidebar, 'SHORTCODE OUTPUT' ), 'shortcodes inside it run' );
+ghld_ok( false === strpos( $with_sidebar, '[ghld_test_shortcode]' ), 'and are not left showing as text' );
+
+$sanitized = GHLD_Settings::sanitize(
+	array_merge( $defaults, array( 'profile_sidebar' => '<p>Keep me</p>' ) )
+);
+ghld_ok( false !== strpos( $sanitized['profile_sidebar'], '<p>Keep me</p>' ), 'saving the panel keeps its markup' );
+
+update_option( 'ghld_settings', $defaults );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

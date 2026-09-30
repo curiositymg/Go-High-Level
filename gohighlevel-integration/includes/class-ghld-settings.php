@@ -47,6 +47,7 @@ class GHLD_Settings {
 			'view'          => 'page',
 			'noindex_generated' => 1,
 			'isolate_profile' => 1,
+			'profile_sidebar' => '',
 			'modal'         => 1,
 			// Drives the contact page as well as the modal; the key is kept as
 			// modal_show so existing installs do not lose their choices.
@@ -221,6 +222,17 @@ class GHLD_Settings {
 		$clean['view']          = self::sanitize_choice( isset( $input['view'] ) ? $input['view'] : '', self::view_choices(), 'page' );
 		$clean['noindex_generated'] = empty( $input['noindex_generated'] ) ? 0 : 1;
 		$clean['isolate_profile'] = empty( $input['isolate_profile'] ) ? 0 : 1;
+
+		// Kept as typed for anyone allowed to post unfiltered HTML — the same
+		// rule WordPress applies to its own Custom HTML block — and run through
+		// post-level filtering for anyone who isn't.
+		if ( isset( $input['profile_sidebar'] ) ) {
+			$sidebar = (string) $input['profile_sidebar'];
+
+			$clean['profile_sidebar'] = current_user_can( 'unfiltered_html' )
+				? $sidebar
+				: wp_kses_post( $sidebar );
+		}
 		$clean['deep_sync']     = empty( $input['deep_sync'] ) ? 0 : 1;
 		$clean['cache_photos']  = empty( $input['cache_photos'] ) ? 0 : 1;
 		$clean['name_format']   = GHLD_Settings::sanitize_choice( isset( $input['name_format'] ) ? $input['name_format'] : '', self::name_format_choices(), 'name_title' );
@@ -242,6 +254,26 @@ class GHLD_Settings {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * The panel shown beside every contact, as stored.
+	 *
+	 * @return string
+	 */
+	public static function profile_sidebar() {
+		$content = (string) self::get( 'profile_sidebar', '' );
+
+		/**
+		 * Filter the panel shown beside every contact.
+		 *
+		 * The hook for anything the settings box cannot express: PHP belongs in
+		 * a theme or plugin file, where it is version controlled and cannot be
+		 * changed from a browser session.
+		 *
+		 * @param string $content Stored panel markup.
+		 */
+		return (string) apply_filters( 'ghld_profile_sidebar', $content );
 	}
 
 	/**
