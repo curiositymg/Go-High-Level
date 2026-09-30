@@ -14,7 +14,6 @@
 	--ghld-surface: #fff;
 	--ghld-muted: rgba(0, 0, 0, 0.62);
 	--ghld-accent: currentColor;
-	--ghld-avatar-size: 96px;
 
 	position: relative;
 	container-type: inline-size;
@@ -158,7 +157,7 @@
 .ghld-card {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
+	align-items: stretch;
 	gap: 0.85rem;
 	height: 100%;
 	padding: 1.25rem;
@@ -178,6 +177,13 @@
 
 .ghld-card-media {
 	flex: 0 0 auto;
+	width: 100%;
+	container-type: inline-size;
+}
+
+.ghld-layout-list .ghld-card-media {
+	width: 12rem;
+	max-width: 40%;
 }
 
 .ghld-card-body {
@@ -185,32 +191,34 @@
 	width: 100%;
 }
 
-/* Themes routinely square off images inside content; the headshot matches the
-   initials circle it replaces, stated where a theme can't outrank it. */
+/* Square, and as wide as the space allows: cropping a headshot to a circle
+   throws away most of the frame, and a small circle wastes the card. Stated at
+   a specificity themes can't outrank. */
 .ghld-directory img.ghld-avatar,
 .ghld-directory .ghld-card img.ghld-avatar,
 .ghld-directory .ghld-modal-dialog img.ghld-avatar {
-	border-radius: 50%;
+	border-radius: 0;
 	object-fit: cover;
+	object-position: center top;
 	aspect-ratio: 1 / 1;
-	width: var(--ghld-avatar-size);
-	height: var(--ghld-avatar-size);
-	max-width: var(--ghld-avatar-size);
+	width: 100%;
+	height: auto;
+	max-width: 100%;
 }
 
 .ghld-avatar {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: var(--ghld-avatar-size);
-	height: var(--ghld-avatar-size);
-	border-radius: 50%;
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	border-radius: 0;
 	object-fit: cover;
 	background: rgba(0, 0, 0, 0.06);
 }
 
 .ghld-avatar-initials {
-	font-size: calc(var(--ghld-avatar-size) / 2.8);
+	font-size: clamp( 2rem, 22cqw, 4rem );
 	font-weight: 600;
 	letter-spacing: 0.03em;
 	color: var(--ghld-muted);
@@ -476,10 +484,6 @@
 	min-width: 0;
 }
 
-.ghld-avatar-large {
-	--ghld-avatar-size: 8.5rem;
-}
-
 .ghld-detail-title {
 	margin: 0 0 0.25rem;
 	font-size: 1rem;
@@ -654,7 +658,83 @@
 	margin-top: -0.75rem;
 }
 
-/* A page has more room than a dialog, so the headshot can be larger. */
-.ghld-profile .ghld-avatar-large {
-	--ghld-avatar-size: 11rem;
+
+
+/* The contact page --------------------------------------------------------- */
+
+.ghld-profile .ghld-detail {
+	gap: 2rem;
+}
+
+.ghld-profile .ghld-detail-media {
+	flex: 0 0 16rem;
+	max-width: 40%;
+	container-type: inline-size;
+}
+
+.ghld-profile .ghld-detail-body {
+	flex: 1 1 20rem;
+}
+
+/* The name is the page's real subject, so it carries the weight — the theme's
+   own page title is stepped down to a label on these pages. */
+.ghld-detail-name {
+	margin: 0 0 0.75rem;
+	font-size: clamp( 1.6rem, 4vw, 2.4rem );
+	line-height: 1.15;
+}
+
+body.ghld-contact-page .entry-title,
+body.ghld-contact-page .page-title,
+body.ghld-contact-page h1.wp-block-post-title,
+body.ghld-contact-page .elementor-heading-title.elementor-size-xxl {
+	font-size: 1rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	opacity: 0.65;
+}
+
+/* Specialty reads as the qualifier beneath the practice details. */
+.ghld-detail-specialty {
+	margin: 0.9rem 0 0;
+	font-style: normal;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	font-size: 0.9rem;
+	color: inherit;
+}
+
+/* Back to the directory, as a control rather than a stray link. */
+.ghld-profile-back {
+	margin: 0 0 1.5rem;
+}
+
+.ghld-directory a.ghld-back-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.5rem 1.1rem;
+	border: 1px solid var(--ghld-border);
+	border-radius: 999px;
+	background: var(--ghld-surface);
+	color: inherit;
+	font-size: 0.9rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+}
+
+.ghld-directory a.ghld-back-link:hover,
+.ghld-directory a.ghld-back-link:focus-visible {
+	border-color: currentColor;
+	text-decoration: none;
+}
+
+@media (max-width: 40rem) {
+	.ghld-profile .ghld-detail-media {
+		flex-basis: 100%;
+		max-width: 14rem;
+	}
 }

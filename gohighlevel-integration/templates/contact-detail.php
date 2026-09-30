@@ -34,14 +34,6 @@ $ghld_place = array_filter(
 	)
 );
 ?>
-<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
-	<p class="ghld-detail-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
-<?php endif; ?>
-
-<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>
-	<p class="ghld-detail-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
-<?php endif; ?>
-
 <div class="ghld-detail">
 	<?php if ( $ghld_showing( 'photo' ) ) : ?>
 		<div class="ghld-detail-media">
@@ -63,6 +55,14 @@ $ghld_place = array_filter(
 	<?php endif; ?>
 
 	<div class="ghld-detail-body">
+		<?php if ( ! empty( $data['heading'] ) ) : ?>
+			<h1 class="ghld-detail-name"><?php echo esc_html( $data['heading'] ); ?></h1>
+		<?php endif; ?>
+
+		<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>
+			<p class="ghld-detail-title"><?php echo esc_html( $ghld_contact['title'] ); ?></p>
+		<?php endif; ?>
+
 		<div class="ghld-detail-practice">
 			<?php if ( $ghld_showing( 'company' ) && '' !== $ghld_contact['company'] ) : ?>
 				<p class="ghld-detail-company"><?php echo esc_html( $ghld_contact['company'] ); ?></p>
@@ -119,6 +119,10 @@ $ghld_place = array_filter(
 			}
 			?>
 		</div>
+
+		<?php if ( $ghld_showing( 'specialty' ) && ! empty( $ghld_contact['specialty'] ) ) : ?>
+			<p class="ghld-detail-specialty"><?php echo esc_html( $ghld_contact['specialty'] ); ?></p>
+		<?php endif; ?>
 
 		<?php if ( $ghld_showing( 'bio' ) && '' !== $ghld_contact['bio'] ) : ?>
 			<p class="ghld-detail-bio"><?php echo esc_html( $ghld_contact['bio'] ); ?></p>

@@ -24,18 +24,17 @@ $ghld_heading = GHLD_Shortcode::display_name( $ghld_contact, $ghld_scope );
 	<p class="ghld-profile-back">
 		<a href="<?php echo esc_url( $data['back'] ); ?>" class="ghld-back-link">
 			<span aria-hidden="true">&larr;</span>
-			<?php esc_html_e( 'Back', 'gohighlevel-integration' ); ?>
+			<?php esc_html_e( 'See Full Directory', 'gohighlevel-integration' ); ?>
 		</a>
 	</p>
 
 	<article class="ghld-profile">
-		<h1 class="ghld-profile-name"><?php echo esc_html( $ghld_heading ); ?></h1>
-
 		<?php
 		GHLD_Template::render(
 			'contact-detail',
 			array(
 				'contact' => $ghld_contact,
+				'heading' => $ghld_heading,
 				'scope'   => array_merge(
 					$ghld_scope,
 					// A page has room for everything the modal shows.

@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.11.3
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,16 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.12.0 =
+* Square headshots that fill the card, instead of small circles that threw
+  away most of the frame.
+* Contact pages follow the supplied model: photo on the left, name, phone,
+  address and specialty to the right.
+* The contact's name is the page's only H1; the theme's page title is stepped
+  down to a label on those pages.
+* The back control reads "See Full Directory" and is styled as a control.
+* Primary Specialty now appears on the cards as well as the contact page.
 
 = 1.11.3 =
 * The per-contact cache button is always shown after an inspection — whether

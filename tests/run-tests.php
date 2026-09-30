@@ -757,6 +757,7 @@ $titled_detail = GHLD_Template::get(
 	)
 );
 ghld_ok( false === strpos( $titled_detail, 'ghld-detail-title' ), 'the modal body does not repeat the title its heading already carries' );
+ghld_ok( false === strpos( $titled_detail, '<h1' ), 'and adds no heading of its own, which the dialog already provides' );
 
 /* -------------------------------------------------------------------------
  * Primary specialty
@@ -1276,7 +1277,9 @@ $profile = GHLD_Template::get(
 	)
 );
 
-ghld_ok( false !== strpos( $profile, '<h1 class="ghld-profile-name">Rosalind Franklin</h1>' ), 'the contact page leads with the name' );
+ghld_ok( false !== strpos( $profile, '<h1 class="ghld-detail-name">Rosalind Franklin</h1>' ), 'the name is the page\'s only H1, beside the photo' );
+ghld_same( 1, substr_count( $profile, '<h1' ), 'the contact page carries exactly one H1' );
+ghld_ok( false !== strpos( $profile, 'See Full Directory' ), 'the back control says where it goes' );
 ghld_ok( false !== strpos( $profile, 'href="/directory/"' ), 'and links back to the directory' );
 ghld_ok( false !== strpos( $profile, '12 Clinic Way' ), 'the page carries the full details' );
 

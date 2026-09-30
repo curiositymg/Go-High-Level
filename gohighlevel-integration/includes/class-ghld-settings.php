@@ -42,7 +42,7 @@ class GHLD_Settings {
 			'bio_field'     => '',
 			'extra_fields'  => array(),
 			'filters'       => array( 'search', 'tag' ),
-			'show'          => array( 'photo', 'title', 'company', 'location', 'tags' ),
+			'show'          => array( 'photo', 'title', 'specialty', 'company', 'location', 'tags' ),
 			'name_format'   => 'name_title',
 			'view'          => 'page',
 			'noindex_generated' => 1,
