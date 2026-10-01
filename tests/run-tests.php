@@ -917,6 +917,39 @@ ghld_ok( false !== strpos( $bar, 'ghld-reset' ), 'the Clear button keeps ghld-re
 ghld_ok( false !== strpos( $bar, 'blue-button' ), "the Clear button carries the theme's blue-button class" );
 ghld_ok( false === strpos( $bar, 'ghld-button ghld-reset' ), 'the Clear button carries no ghld-button class, so the theme styles it' );
 ghld_ok( false !== strpos( $bar, 'data-ghld-reset' ), 'the Clear button is still wired up' );
+ghld_ok( false === strpos( $bar, 'type="reset"' ), 'Clear is not a form reset, which would restore the filters it is meant to drop' );
+
+$_GET = array(
+	'ghld_s'     => 'cardiology',
+	'ghld_page'  => '4',
+	'utm_source' => 'newsletter',
+);
+$clear = GHLD_Shortcode::clear_url();
+ghld_ok( false === strpos( $clear, 'ghld_s' ), 'clearing drops the search' );
+ghld_ok( false === strpos( $clear, 'ghld_page' ), 'and the page' );
+ghld_ok( false !== strpos( $clear, 'utm_source=newsletter' ), 'but leaves arguments that are not ours alone' );
+
+$_GET = array( 'ghld_s' => 'cardiology' );
+ghld_same( '/directory/', GHLD_Shortcode::clear_url(), 'with nothing else in the URL it returns to the plain directory' );
+
+$filtered_bar = GHLD_Template::get(
+	'filter-bar',
+	array(
+		'scope'   => $default_scope,
+		'request' => GHLD_Shortcode::parse_request( array( 'ghld_s' => 'cardiology' ), $default_scope ),
+		'facets'  => array(
+			'tag'     => array(),
+			'city'    => array(),
+			'state'   => array(),
+			'company' => array(),
+			'custom'  => array(),
+		),
+	)
+);
+ghld_ok( false !== strpos( $filtered_bar, 'value="cardiology"' ), 'a filtered page renders the term in the box' );
+ghld_ok( false !== strpos( $filtered_bar, 'href="/directory/"' ), 'and Clear points away from it, not back to it' );
+
+$_GET = array();
 ghld_ok( false !== strpos( $bar, 'ghld-label ghld-label-hidden' ), 'the search label is hidden visually, not removed' );
 ghld_ok( false !== strpos( $bar, 'for="ghld-ghld_s"' ), 'the search label still points at its input' );
 

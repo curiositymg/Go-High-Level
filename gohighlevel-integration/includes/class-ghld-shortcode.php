@@ -280,6 +280,38 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * Link to the directory with every filter dropped.
+	 *
+	 * Query arguments that are not this plugin's — a campaign tag, say — are
+	 * left alone, since clearing the filters is not the same as clearing the
+	 * URL.
+	 *
+	 * @return string
+	 */
+	public static function clear_url() {
+		$query = array();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		foreach ( (array) $_GET as $key => $value ) {
+			$key = (string) $key;
+
+			if ( 0 === strpos( $key, self::QUERY_PREFIX ) || ! is_scalar( $value ) ) {
+				continue;
+			}
+
+			$query[ $key ] = sanitize_text_field( wp_unslash( (string) $value ) );
+		}
+
+		if ( ! empty( $query ) ) {
+			return '?' . http_build_query( $query );
+		}
+
+		$path = wp_parse_url( home_url( add_query_arg( array() ) ), PHP_URL_PATH );
+
+		return ( is_string( $path ) && '' !== $path ) ? $path : '/';
+	}
+
+	/**
 	 * Link back to the directory itself.
 	 *
 	 * @return string

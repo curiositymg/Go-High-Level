@@ -134,10 +134,14 @@ $ghld_select = static function ( $name, $label, array $values, $current, $any ) 
 	<div class="ghld-field ghld-field-actions">
 		<button type="submit" class="ghld-button ghld-submit"><?php esc_html_e( 'Filter', 'gohighlevel-integration' ); ?></button>
 		<?php
-		// No ghld-button class here on purpose: the Clear button takes the
+		// A link, not type="reset": a reset restores the form's initial values,
+		// and on a filtered page those *are* the filters, so it cleared
+		// nothing. As a link it works with JavaScript off too.
+		//
+		// No ghld-button class here on purpose: the Clear control takes the
 		// theme's own button styling via `blue-button`. `.ghld-reset` stays as
 		// this plugin's styling hook.
 		?>
-		<button type="reset" class="ghld-reset blue-button" data-ghld-reset><?php esc_html_e( 'Clear', 'gohighlevel-integration' ); ?></button>
+		<a href="<?php echo esc_url( GHLD_Shortcode::clear_url() ); ?>" class="ghld-reset blue-button" data-ghld-reset><?php esc_html_e( 'Clear', 'gohighlevel-integration' ); ?></a>
 	</div>
 </form>

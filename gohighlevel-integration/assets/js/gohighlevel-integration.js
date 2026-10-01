@@ -187,11 +187,22 @@
 				}
 			} );
 
-			form.addEventListener( 'reset', function () {
-				// Let the browser clear the fields before reading them back.
-				window.setTimeout( function () {
-					load( 1, false );
-				}, 0 );
+			// Clear every control by hand. A native form reset restores the
+			// values the page was rendered with, which on a filtered page are
+			// the very filters being cleared.
+			form.addEventListener( 'click', function ( event ) {
+				if ( ! event.target.closest( '[data-ghld-reset]' ) ) {
+					return;
+				}
+
+				event.preventDefault();
+				window.clearTimeout( timer );
+
+				Array.prototype.forEach.call( form.querySelectorAll( '[data-ghld-control]' ), function ( control ) {
+					control.value = '';
+				} );
+
+				load( 1, false );
 			} );
 		}
 
