@@ -558,6 +558,44 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * The name line as markup, breaking a run of credentials onto its own line.
+	 *
+	 * "Kamel Elzawahry, MD, FACP, FAAN, FAHA, FAHS" is a name and five
+	 * credentials. Kept on one line it wraps wherever it runs out of room,
+	 * stranding a comma at the start of the next. More than one credential —
+	 * which is to say, a comma inside the title — gets a line of its own, with
+	 * the first comma left attached to the name where it belongs.
+	 *
+	 * @param array $contact Normalized contact.
+	 * @param array $scope   Resolved scope.
+	 * @return string Escaped HTML.
+	 */
+	public static function name_line_html( array $contact, array $scope ) {
+		$name  = isset( $contact['name'] ) ? (string) $contact['name'] : '';
+		$title = self::inline_title( $contact, $scope );
+
+		if ( '' === $title ) {
+			return esc_html( $name );
+		}
+
+		if ( self::has_several_credentials( $title ) ) {
+			return esc_html( $name ) . ',<span class="ghld-name-title ghld-name-credentials">' . esc_html( $title ) . '</span>';
+		}
+
+		return esc_html( $name ) . '<span class="ghld-name-title">, ' . esc_html( $title ) . '</span>';
+	}
+
+	/**
+	 * Whether a title holds more than one credential.
+	 *
+	 * @param string $title Title as mapped.
+	 * @return bool
+	 */
+	public static function has_several_credentials( $title ) {
+		return false !== strpos( (string) $title, ',' );
+	}
+
+	/**
 	 * The full name line as one string, for the dialog heading.
 	 *
 	 * @param array $contact Normalized contact.

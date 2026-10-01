@@ -739,7 +739,46 @@ $titled_card = GHLD_Template::get(
 		'scope'   => $default_scope,
 	)
 );
-ghld_ok( false !== strpos( $titled_card, '<span class="ghld-name-title">, MD</span>' ), 'the title is printed on the name line' );
+ghld_ok( false !== strpos( $titled_card, '<span class="ghld-name-title">, MD</span>' ), 'a single credential sits on the name line' );
+
+// Several credentials: the comma stays with the name, they take a line.
+$many = GHLD_Contact::normalize(
+	array(
+		'id'           => 'cred1',
+		'firstName'    => 'Kamel',
+		'lastName'     => 'Elzawahry',
+		'tags'         => array( 'member - physician' ),
+		'customFields' => array(
+			array(
+				'id'    => 'fld_cred',
+				'value' => 'MD, FACP, FAAN, FAHA, FAHS',
+			),
+		),
+	),
+	array(
+		'fld_cred' => array(
+			'key'  => 'credential',
+			'name' => 'Credential',
+			'type' => 'TEXT',
+		),
+	),
+	array_merge( $defaults, array( 'title_field' => 'cf:credential' ) )
+);
+
+ghld_same( true, GHLD_Shortcode::has_several_credentials( 'MD, FACP' ), 'a comma in the title means several credentials' );
+ghld_same( false, GHLD_Shortcode::has_several_credentials( 'MD' ), 'one credential is not several' );
+ghld_same( false, GHLD_Shortcode::has_several_credentials( '' ), 'and neither is none' );
+
+$many_line = GHLD_Shortcode::name_line_html( $many, $default_scope );
+ghld_ok( false !== strpos( $many_line, 'Kamel Elzawahry,<span' ), 'the first comma stays attached to the name' );
+ghld_ok( false !== strpos( $many_line, 'ghld-name-credentials">MD, FACP, FAAN, FAHA, FAHS</span>' ), 'and the credentials start their own line without it' );
+ghld_ok( false === strpos( $many_line, '>, MD' ), 'the credentials do not carry a leading comma' );
+
+$one_line = GHLD_Shortcode::name_line_html( $titled, $default_scope );
+ghld_ok( false !== strpos( $one_line, '<span class="ghld-name-title">, MD</span>' ), 'a single credential is left inline' );
+ghld_ok( false === strpos( $one_line, 'ghld-name-credentials' ), 'and gets no line of its own' );
+
+ghld_same( 'Jonas Salk', GHLD_Shortcode::name_line_html( $salk, $default_scope ), 'a contact with no credentials is just their name' );
 ghld_ok( false !== strpos( $titled_card, 'data-ghld-name="Emily Billingsley, MD"' ), 'the dialog heading carries the title too' );
 ghld_ok( false === strpos( $titled_card, '<p class="ghld-title">' ), 'the title does not also take a line of its own' );
 

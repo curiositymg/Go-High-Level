@@ -590,6 +590,13 @@
 	white-space: nowrap;
 }
 
+/* Several credentials take their own line and wrap there; the comma that
+   introduces them stays with the name. */
+.ghld-name-credentials {
+	display: block;
+	white-space: normal;
+}
+
 /* Specialty --------------------------------------------------------------- */
 
 /* Sits directly under the name as a subtitle, the way a physician's

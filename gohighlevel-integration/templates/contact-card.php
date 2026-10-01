@@ -75,28 +75,17 @@ $ghld_showing = static function ( $key ) use ( $ghld_show ) {
 
 	<div class="ghld-card-body">
 		<h3 class="ghld-name">
+			<?php $ghld_name_line = GHLD_Shortcode::name_line_html( $ghld_contact, $data['scope'] ); ?>
 			<?php if ( $ghld_linked ) : ?>
 				<a class="ghld-name-link" href="<?php echo esc_url( $ghld_href ); ?>" data-ghld-profile-link>
-					<?php echo esc_html( $ghld_contact['name'] ); ?><?php
-					if ( '' !== $ghld_inline_title ) :
-						?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
-					endif;
-					?>
+					<?php echo $ghld_name_line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in name_line_html(). ?>
 				</a>
 			<?php elseif ( $ghld_modal ) : ?>
 				<button type="button" class="ghld-name-button" data-ghld-open>
-					<?php echo esc_html( $ghld_contact['name'] ); ?><?php
-					if ( '' !== $ghld_inline_title ) :
-						?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
-					endif;
-					?>
+					<?php echo $ghld_name_line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in name_line_html(). ?>
 				</button>
 			<?php else : ?>
-				<?php echo esc_html( $ghld_contact['name'] ); ?><?php
-				if ( '' !== $ghld_inline_title ) :
-					?><span class="ghld-name-title">, <?php echo esc_html( $ghld_inline_title ); ?></span><?php
-				endif;
-				?>
+				<?php echo $ghld_name_line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in name_line_html(). ?>
 			<?php endif; ?>
 		</h3>
 

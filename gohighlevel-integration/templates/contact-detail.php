@@ -69,7 +69,7 @@ $ghld_place = array_filter(
 
 	<div class="ghld-detail-body">
 		<?php if ( ! empty( $data['heading'] ) ) : ?>
-			<h1 class="ghld-detail-name"><?php echo esc_html( $data['heading'] ); ?></h1>
+			<h1 class="ghld-detail-name"><?php echo GHLD_Shortcode::name_line_html( $ghld_contact, $data['scope'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in name_line_html(). ?></h1>
 		<?php endif; ?>
 
 		<?php if ( $ghld_showing( 'title' ) && '' === GHLD_Shortcode::inline_title( $ghld_contact, $data['scope'] ) && '' !== $ghld_contact['title'] ) : ?>

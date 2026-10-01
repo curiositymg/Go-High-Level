@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.15.2
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.16.0 =
+* A physician with several credentials gets them on their own line, with the
+  comma that introduces them kept beside the name — no more stranded comma at
+  the start of a wrapped line.
 
 = 1.15.2 =
 * Clear actually clears. It was a form reset, which restores a form to the
