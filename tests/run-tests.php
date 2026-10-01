@@ -1817,6 +1817,72 @@ ghld_same( 'personal@example.com', $own_email['email'], "mapping set to the cont
 ghld_same( 'cf:doctors_email_address', GHLD_Settings::defaults()['email_field'], "email maps to the doctor's email field by default" );
 
 /* -------------------------------------------------------------------------
+ * The published phone number
+ * ---------------------------------------------------------------------- */
+
+$phone_fields = array(
+	'fld_office' => array(
+		'key'  => 'office_phone',
+		'name' => 'Office Phone',
+		'type' => 'TEXT',
+	),
+);
+
+ghld_same( '', GHLD_Settings::defaults()['phone_field'], 'no phone field is mapped until one is chosen' );
+
+$own_phone = GHLD_Contact::normalize(
+	array(
+		'id'          => 'ph1',
+		'contactName' => 'Own Phone',
+		'phone'       => '+1 555-0100',
+	),
+	$phone_fields,
+	$defaults
+);
+ghld_same( '+1 555-0100', $own_phone['phone'], "unmapped, the contact's own number is published" );
+
+$office_settings = array_merge( $defaults, array( 'phone_field' => 'cf:office_phone' ) );
+
+$mapped_phone = GHLD_Contact::normalize(
+	array(
+		'id'           => 'ph2',
+		'contactName'  => 'Office Phone',
+		'phone'        => '+1 555-0100',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_office',
+				'value' => '(850) 769-1644',
+			),
+		),
+	),
+	$phone_fields,
+	$office_settings
+);
+ghld_same( '(850) 769-1644', $mapped_phone['phone'], 'the mapped field is the number that gets published' );
+ghld_same( '+1 555-0100', $mapped_phone['phone_raw'], "and the contact's own number is still held" );
+
+$no_office_phone = GHLD_Contact::normalize(
+	array(
+		'id'          => 'ph3',
+		'contactName' => 'No Office Phone',
+		'phone'       => '+1 555-0100',
+	),
+	$phone_fields,
+	$office_settings
+);
+ghld_same( '', $no_office_phone['phone'], 'an empty mapped field publishes no number, not the mobile on the record' );
+
+$office_card = GHLD_Template::get(
+	'contact-detail',
+	array(
+		'contact' => $mapped_phone,
+		'scope'   => array_merge( $default_scope, array( 'modal_show' => array( 'phone' ) ) ),
+	)
+);
+ghld_ok( false !== strpos( $office_card, 'tel:8507691644' ), 'the published number is what gets dialled' );
+ghld_ok( false === strpos( $office_card, '5550100' ), "and the record's own number is nowhere on the page" );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

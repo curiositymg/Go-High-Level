@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '10';
+	const DERIVED_VERSION = '11';
 
 	/**
 	 * Normalize one contact.
@@ -73,7 +73,8 @@ class GHLD_Contact {
 			'name'          => $name,
 			'email_raw'     => is_email( $email ) ? $email : '',
 			'email'         => '',
-			'phone'         => self::str( $raw, 'phone' ),
+			'phone_raw'     => self::str( $raw, 'phone' ),
+			'phone'         => '',
 			'company_raw'   => self::first_str( $raw, array( 'companyName', 'company', 'businessName' ) ),
 			'company'       => '',
 			'website'       => self::url( self::str( $raw, 'website' ) ),
@@ -458,6 +459,14 @@ class GHLD_Contact {
 			}
 		}
 
+		// Same rule as the email: the number on a contact record is often a
+		// mobile, so a mapped field that is empty publishes nothing rather than
+		// falling back to it.
+		$phone_field      = isset( $settings['phone_field'] ) ? (string) $settings['phone_field'] : '';
+		$contact['phone'] = ( '' === $phone_field )
+			? ( isset( $contact['phone_raw'] ) ? (string) $contact['phone_raw'] : '' )
+			: self::mapped_value( $settings, 'phone_field', $custom, $contact );
+
 		$contact['fax']       = self::mapped_value( $settings, 'fax_field', $custom, $contact );
 		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
 		// Specialties live in two separate single-line fields; they read as one
@@ -484,7 +493,7 @@ class GHLD_Contact {
 	 */
 	public static function mapping_hash( array $settings ) {
 		$relevant = array( 'derived' => self::DERIVED_VERSION );
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'email_field', 'bio_field', 'use_gravatar' ) as $key ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'email_field', 'phone_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
 

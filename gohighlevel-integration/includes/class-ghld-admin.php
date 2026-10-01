@@ -652,6 +652,16 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="ghld-phone"><?php esc_html_e( 'Phone', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-phone" name="<?php echo esc_attr( $name ); ?>[phone_field]">
+								<option value="" <?php selected( $settings['phone_field'], '' ); ?>><?php esc_html_e( 'The contact\'s own phone number', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['phone_field'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'The number to publish — an office line rather than the mobile on the contact record, typically. A contact whose mapped field is empty shows no number at all; the record\'s number is never published as a substitute.', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-email"><?php esc_html_e( 'Email', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<select id="ghld-email" name="<?php echo esc_attr( $name ); ?>[email_field]">
