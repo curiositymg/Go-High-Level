@@ -95,8 +95,10 @@ lists the discovered fields by name after the first sync.
 ## How it fits together
 
 - **Sync.** `GHLD_Repository::sync()` pulls every contact through the paginated
-  `/contacts/` endpoint, normalizes each one (`GHLD_Contact`), and stores the set
-  in the non-autoloaded `ghld_contacts` option. WP-Cron re-runs it hourly; a page
+  `/contacts/` endpoint, normalizes each one (`GHLD_Contact`), **narrows to the
+  include/exclude tags**, and stores the set in the non-autoloaded
+  `ghld_contacts` option. The narrowing comes first because everything after it
+  — fetching full records, downloading photos — costs an API call per contact. WP-Cron re-runs it hourly; a page
   view triggers it when the cache is older than the configured lifetime.
 - **Never blocks the page.** A failed sync is recorded and the previously cached
   set keeps rendering, with a 5-minute back-off before the next attempt. A
@@ -190,7 +192,7 @@ python3 -m pytest tests/
 `tests/test_plugin.py` lints every PHP file and checks the plugin's structural
 invariants (direct-access guards, version consistency across the header/constant/
 readme.txt, escaped template output, a REST route that takes no tag scope of its
-own). It also runs `tests/run-tests.php`, the logic suite: 248 assertions driving
+own). It also runs `tests/run-tests.php`, the logic suite: 256 assertions driving
 the real classes against stubbed WordPress functions in `tests/stubs.php` — no
 WordPress install and no network needed. Run that suite alone with:
 

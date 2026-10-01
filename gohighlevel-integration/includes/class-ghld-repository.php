@@ -132,6 +132,27 @@ class GHLD_Repository {
 			$contacts[] = $contact;
 		}
 
+		// Narrow to the listed tags before anything expensive runs. Everything
+		// below costs an API call per contact, so caching a whole location to
+		// then display a fraction of it is what makes a sync time out. With no
+		// include tags set, everyone is kept, as before.
+		$kept = self::apply_scope(
+			$contacts,
+			array(
+				'tags'         => GHLD_Settings::to_list( $settings['include_tags'] ),
+				'exclude_tags' => GHLD_Settings::to_list( $settings['exclude_tags'] ),
+			)
+		);
+
+		self::update_state(
+			array(
+				'fetched_total' => count( $contacts ),
+				'kept_total'    => count( $kept ),
+			)
+		);
+
+		$contacts = $kept;
+
 		if ( ! empty( $settings['deep_sync'] ) ) {
 			$contacts = self::enrich( $contacts, $client, $fields, $settings );
 		}

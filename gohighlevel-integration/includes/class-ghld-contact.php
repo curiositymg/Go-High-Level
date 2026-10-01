@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '8';
+	const DERIVED_VERSION = '9';
 
 	/**
 	 * Normalize one contact.
@@ -71,7 +71,8 @@ class GHLD_Contact {
 			'first_name'    => $first,
 			'last_name'     => $last,
 			'name'          => $name,
-			'email'         => is_email( $email ) ? $email : '',
+			'email_raw'     => is_email( $email ) ? $email : '',
+			'email'         => '',
 			'phone'         => self::str( $raw, 'phone' ),
 			'company_raw'   => self::first_str( $raw, array( 'companyName', 'company', 'businessName' ) ),
 			'company'       => '',
@@ -440,6 +441,13 @@ class GHLD_Contact {
 			$contact['company'] = isset( $contact['company_raw'] ) ? (string) $contact['company_raw'] : '';
 		}
 
+		// A published address often lives in its own field rather than the
+		// contact's, which may be a personal one.
+		$mapped_email       = sanitize_email( self::mapped_value( $settings, 'email_field', $custom, $contact ) );
+		$contact['email']   = is_email( $mapped_email )
+			? $mapped_email
+			: ( isset( $contact['email_raw'] ) ? (string) $contact['email_raw'] : '' );
+
 		$contact['fax']       = self::mapped_value( $settings, 'fax_field', $custom, $contact );
 		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
 		// Specialties live in two separate single-line fields; they read as one
@@ -466,7 +474,7 @@ class GHLD_Contact {
 	 */
 	public static function mapping_hash( array $settings ) {
 		$relevant = array( 'derived' => self::DERIVED_VERSION );
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'bio_field', 'use_gravatar' ) as $key ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'email_field', 'bio_field', 'use_gravatar' ) as $key ) {
 			$relevant[ $key ] = isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 		}
 

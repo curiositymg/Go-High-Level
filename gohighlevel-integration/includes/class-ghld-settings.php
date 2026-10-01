@@ -39,6 +39,7 @@ class GHLD_Settings {
 			'specialty_field_2' => '',
 			'company_field' => 'cf:organization_name',
 			'fax_field'     => 'cf:fax',
+			'email_field'   => 'cf:doctors_email_address',
 			'bio_field'     => '',
 			'extra_fields'  => array(),
 			'filters'       => array( 'search', 'tag' ),
@@ -217,6 +218,7 @@ class GHLD_Settings {
 		$clean['specialty_field_2'] = isset( $input['specialty_field_2'] ) ? sanitize_text_field( $input['specialty_field_2'] ) : '';
 		$clean['company_field'] = isset( $input['company_field'] ) ? sanitize_text_field( $input['company_field'] ) : '';
 		$clean['fax_field']     = isset( $input['fax_field'] ) ? sanitize_text_field( $input['fax_field'] ) : '';
+		$clean['email_field']   = isset( $input['email_field'] ) ? sanitize_text_field( $input['email_field'] ) : '';
 		$clean['bio_field']     = isset( $input['bio_field'] ) ? sanitize_text_field( $input['bio_field'] ) : '';
 		$clean['use_gravatar']  = empty( $input['use_gravatar'] ) ? 0 : 1;
 		$clean['default_photo'] = isset( $input['default_photo'] ) ? esc_url_raw( trim( $input['default_photo'] ) ) : '';

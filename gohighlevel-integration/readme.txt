@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.14.0
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,14 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.15.0 =
+* Only contacts carrying the include tags are cached, so a location of
+  thousands syncs as the few hundred actually listed. Everything costly runs
+  per contact, so this is the difference between a sync finishing and timing
+  out.
+* Email is now a mapped field: publish a practice address from a custom field
+  rather than the personal one on the contact record.
 
 = 1.14.0 =
 * A contact with no headshot shows a placeholder photo rather than initials.

@@ -1604,6 +1604,127 @@ ghld_ok( false !== strpos( $labelled, ':</dt>' ), 'a field label ends with a col
 ghld_ok( false !== strpos( $labelled, 'Geriatrics' ), 'and its value sits beside it' );
 
 /* -------------------------------------------------------------------------
+ * Only the tagged contacts are cached at all
+ * ---------------------------------------------------------------------- */
+
+$location = array(
+	GHLD_Contact::normalize(
+		array(
+			'id'          => 'loc1',
+			'contactName' => 'A Physician',
+			'tags'        => array( 'member - physician' ),
+		),
+		array(),
+		$defaults
+	),
+	GHLD_Contact::normalize(
+		array(
+			'id'          => 'loc2',
+			'contactName' => 'An Administrator',
+			'tags'        => array( 'member - staff' ),
+		),
+		array(),
+		$defaults
+	),
+	GHLD_Contact::normalize(
+		array(
+			'id'          => 'loc3',
+			'contactName' => 'Someone Untagged',
+			'tags'        => array(),
+		),
+		array(),
+		$defaults
+	),
+);
+
+$narrowed = ghld_call_protected(
+	'GHLD_Repository',
+	'apply_scope',
+	array(
+		$location,
+		array(
+			'tags'         => GHLD_Settings::to_list( $defaults['include_tags'] ),
+			'exclude_tags' => array(),
+		),
+	)
+);
+
+ghld_same( 1, count( $narrowed ), 'a location of mixed contacts narrows to the tagged ones before anything is fetched' );
+ghld_same( 'A Physician', $narrowed[0]['name'], 'and it is the right one' );
+
+$unrestricted = ghld_call_protected(
+	'GHLD_Repository',
+	'apply_scope',
+	array(
+		$location,
+		array(
+			'tags'         => array(),
+			'exclude_tags' => array(),
+		),
+	)
+);
+ghld_same( 3, count( $unrestricted ), 'with no include tags set, everyone is kept' );
+
+/* -------------------------------------------------------------------------
+ * The published email address
+ * ---------------------------------------------------------------------- */
+
+$email_fields = array(
+	'fld_docmail' => array(
+		'key'  => 'doctors_email_address',
+		'name' => "Doctor's email address",
+		'type' => 'TEXT',
+	),
+);
+
+$with_practice_email = GHLD_Contact::normalize(
+	array(
+		'id'           => 'em1',
+		'contactName'  => 'Mapped Email',
+		'email'        => 'personal@example.com',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_docmail',
+				'value' => 'practice@example.com',
+			),
+		),
+	),
+	$email_fields,
+	$defaults
+);
+ghld_same( 'practice@example.com', $with_practice_email['email'], 'the mapped field is the address that gets published' );
+ghld_same( 'personal@example.com', $with_practice_email['email_raw'], "and the contact's own address is still kept" );
+
+$no_mapped_email = GHLD_Contact::normalize(
+	array(
+		'id'          => 'em2',
+		'contactName' => 'Unmapped Email',
+		'email'       => 'personal@example.com',
+	),
+	$email_fields,
+	$defaults
+);
+ghld_same( 'personal@example.com', $no_mapped_email['email'], 'an empty mapped field falls back to the contact\'s own address' );
+
+$bad_mapped_email = GHLD_Contact::normalize(
+	array(
+		'id'           => 'em3',
+		'contactName'  => 'Bad Email',
+		'email'        => 'personal@example.com',
+		'customFields' => array(
+			array(
+				'id'    => 'fld_docmail',
+				'value' => 'not an address',
+			),
+		),
+	),
+	$email_fields,
+	$defaults
+);
+ghld_same( 'personal@example.com', $bad_mapped_email['email'], 'so does a mapped value that is not a valid address' );
+ghld_same( 'cf:doctors_email_address', GHLD_Settings::defaults()['email_field'], "email maps to the doctor's email field by default" );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

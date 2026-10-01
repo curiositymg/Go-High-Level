@@ -586,7 +586,7 @@ class GHLD_Admin {
 						<th scope="row"><label for="ghld-include"><?php esc_html_e( 'Only include tags', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ghld-include" name="<?php echo esc_attr( $name ); ?>[include_tags]" value="<?php echo esc_attr( $settings['include_tags'] ); ?>" />
-							<p class="description"><?php esc_html_e( 'Comma-separated, and set to "member - physician" by default. Only contacts carrying one of these tags are listed. Leaving this empty makes every synced contact listable, so keep it set unless that is really what you want.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Comma-separated, and set to "member - physician" by default. Only contacts carrying one of these tags are cached at all, so a location of several thousand contacts syncs as the few hundred you list. Leaving this empty caches every contact in the location, which is slow and makes them all listable.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -649,6 +649,16 @@ class GHLD_Admin {
 								<?php self::field_options( $fields, $settings['specialty_field_2'] ); ?>
 							</select>
 							<p class="description"><?php esc_html_e( 'Joined to the first with a comma, so two fields read as one line: "Infectious Disease, Internal Medicine".', 'gohighlevel-integration' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="ghld-email"><?php esc_html_e( 'Email', 'gohighlevel-integration' ); ?></label></th>
+						<td>
+							<select id="ghld-email" name="<?php echo esc_attr( $name ); ?>[email_field]">
+								<option value="" <?php selected( $settings['email_field'], '' ); ?>><?php esc_html_e( 'The contact\'s own email address', 'gohighlevel-integration' ); ?></option>
+								<?php self::field_options( $fields, $settings['email_field'] ); ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'The address to publish, which is often a practice one rather than the personal address on the contact record. Falls back to the contact\'s own email when the mapped field is empty or not a valid address.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -846,7 +856,19 @@ class GHLD_Admin {
 			<h2 class="title"><?php esc_html_e( 'Status', 'gohighlevel-integration' ); ?></h2>
 			<p>
 				<strong><?php esc_html_e( 'Cached contacts:', 'gohighlevel-integration' ); ?></strong>
-				<?php echo esc_html( number_format_i18n( (int) $state['count'] ) ); ?><br />
+				<?php
+				echo esc_html( number_format_i18n( (int) $state['count'] ) );
+
+				if ( ! empty( $state['fetched_total'] ) && (int) $state['fetched_total'] > (int) $state['count'] ) {
+					echo ' ';
+					printf(
+						/* translators: %s: contacts in the GoHighLevel location. */
+						esc_html__( '(of %s in GoHighLevel, narrowed by the tags below)', 'gohighlevel-integration' ),
+						esc_html( number_format_i18n( (int) $state['fetched_total'] ) )
+					);
+				}
+				?>
+				<br />
 				<strong><?php esc_html_e( 'Last successful sync:', 'gohighlevel-integration' ); ?></strong>
 				<?php
 				echo $synced

@@ -492,7 +492,7 @@ class GHLD_Shortcode {
 	public static function mapped_custom_keys() {
 		$keys = array();
 
-		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'bio_field' ) as $setting ) {
+		foreach ( array( 'photo_field', 'title_field', 'specialty_field', 'specialty_field_2', 'company_field', 'fax_field', 'email_field', 'bio_field' ) as $setting ) {
 			$value = (string) GHLD_Settings::get( $setting, '' );
 			if ( 0 === strpos( $value, 'cf:' ) ) {
 				$keys[] = substr( $value, 3 );
