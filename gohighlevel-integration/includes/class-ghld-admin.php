@@ -658,7 +658,7 @@ class GHLD_Admin {
 								<option value="" <?php selected( $settings['email_field'], '' ); ?>><?php esc_html_e( 'The contact\'s own email address', 'gohighlevel-integration' ); ?></option>
 								<?php self::field_options( $fields, $settings['email_field'] ); ?>
 							</select>
-							<p class="description"><?php esc_html_e( 'The address to publish, which is often a practice one rather than the personal address on the contact record. Falls back to the contact\'s own email when the mapped field is empty or not a valid address.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'The address to publish, which is often a practice one rather than the personal address on the contact record. A contact whose mapped field is empty shows no email at all — the address on the record is never published as a substitute. Choose "the contact\'s own email address" above to publish that one deliberately.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>

@@ -455,9 +455,14 @@ ghld_same( 'member - physician', $defaults['include_tags'], 'the default scope i
 ghld_same( 'cf:member_profile_photo', $defaults['photo_field'], 'the default photo field is member_profile_photo' );
 
 $physician_fields = array(
-	'fld_mpp' => array(
+	'fld_mpp'     => array(
 		'key'  => 'member_profile_photo',
 		'name' => 'Member Profile Photo',
+		'type' => 'TEXT',
+	),
+	'fld_docmail' => array(
+		'key'  => 'doctors_email_address',
+		'name' => "Doctor's email address",
 		'type' => 'TEXT',
 	),
 );
@@ -467,7 +472,6 @@ $roster = array(
 		'id'           => 'p1',
 		'firstName'    => 'rosalind',
 		'lastName'     => 'franklin',
-		'email'        => 'rosalind@example.com',
 		'phone'        => '+1 555-0142',
 		'address1'     => '12 Clinic Way',
 		'city'         => 'Chipley',
@@ -479,6 +483,10 @@ $roster = array(
 			array(
 				'id'    => 'fld_mpp',
 				'value' => 'https://cdn.example.com/franklin.jpg',
+			),
+			array(
+				'id'    => 'fld_docmail',
+				'value' => 'rosalind@example.com',
 			),
 		),
 	),
@@ -1704,7 +1712,8 @@ $no_mapped_email = GHLD_Contact::normalize(
 	$email_fields,
 	$defaults
 );
-ghld_same( 'personal@example.com', $no_mapped_email['email'], 'an empty mapped field falls back to the contact\'s own address' );
+ghld_same( '', $no_mapped_email['email'], 'an empty mapped field publishes no address at all' );
+ghld_same( 'personal@example.com', $no_mapped_email['email_raw'], 'though the address on the record is still held' );
 
 $bad_mapped_email = GHLD_Contact::normalize(
 	array(
@@ -1721,7 +1730,18 @@ $bad_mapped_email = GHLD_Contact::normalize(
 	$email_fields,
 	$defaults
 );
-ghld_same( 'personal@example.com', $bad_mapped_email['email'], 'so does a mapped value that is not a valid address' );
+ghld_same( '', $bad_mapped_email['email'], 'nor does a mapped value that is not a valid address' );
+
+$own_email = GHLD_Contact::normalize(
+	array(
+		'id'          => 'em4',
+		'contactName' => 'Own Email',
+		'email'       => 'personal@example.com',
+	),
+	$email_fields,
+	array_merge( $defaults, array( 'email_field' => '' ) )
+);
+ghld_same( 'personal@example.com', $own_email['email'], "mapping set to the contact's own address publishes that one" );
 ghld_same( 'cf:doctors_email_address', GHLD_Settings::defaults()['email_field'], "email maps to the doctor's email field by default" );
 
 /* -------------------------------------------------------------------------

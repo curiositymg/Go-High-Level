@@ -24,7 +24,7 @@ class GHLD_Contact {
 	 *
 	 * @var string
 	 */
-	const DERIVED_VERSION = '9';
+	const DERIVED_VERSION = '10';
 
 	/**
 	 * Normalize one contact.
@@ -441,12 +441,22 @@ class GHLD_Contact {
 			$contact['company'] = isset( $contact['company_raw'] ) ? (string) $contact['company_raw'] : '';
 		}
 
-		// A published address often lives in its own field rather than the
-		// contact's, which may be a personal one.
-		$mapped_email       = sanitize_email( self::mapped_value( $settings, 'email_field', $custom, $contact ) );
-		$contact['email']   = is_email( $mapped_email )
-			? $mapped_email
-			: ( isset( $contact['email_raw'] ) ? (string) $contact['email_raw'] : '' );
+		// A published address lives in its own field. No fallback to the address
+		// on the contact record: that one is personal, and publishing it
+		// because the chosen field happened to be empty would be a privacy
+		// failure, not a convenience. Mapping set to "the contact's own email"
+		// is the explicit way to use it.
+		$email_field      = isset( $settings['email_field'] ) ? (string) $settings['email_field'] : '';
+		$contact['email'] = '';
+
+		if ( '' === $email_field ) {
+			$contact['email'] = isset( $contact['email_raw'] ) ? (string) $contact['email_raw'] : '';
+		} else {
+			$mapped_email = sanitize_email( self::mapped_value( $settings, 'email_field', $custom, $contact ) );
+			if ( is_email( $mapped_email ) ) {
+				$contact['email'] = $mapped_email;
+			}
+		}
 
 		$contact['fax']       = self::mapped_value( $settings, 'fax_field', $custom, $contact );
 		$contact['title']     = self::mapped_value( $settings, 'title_field', $custom, $contact );
