@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.18.0
+Stable tag: 1.18.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,19 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.18.1 =
+* Fixes upgrading wiping the headshots. The cache flush written for an upgrade
+  back at migration 3 sat outside any version branch, so every later bump re-ran
+  it: 1.17.3, 1.17.4 and 1.18.0 each cleared the cached contacts on activation.
+  Names return on the next sync from the contact list, but a headshot in a
+  file-upload field only arrives from the single-contact endpoint, sixty per sync
+  behind a day-long cooldown — so the headshots disappeared and came back slowly
+  or not at all. Each step now names the versions it applies to, and an install
+  past that point keeps its data.
+* To get the headshots back now, press "Fetch every contact now" on the settings
+  screen and let it finish. It clears the per-contact cooldown and works through
+  every contact in batches, rather than waiting for the background schedule.
 
 = 1.18.0 =
 * Fixes the directory being invisible to visitors whose device is in dark mode.

@@ -926,5 +926,6 @@ require_once GHLD_PATH . 'includes/class-ghld-repository.php';
 require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
 require_once GHLD_PATH . 'includes/class-ghld-seo.php';
+require_once GHLD_PATH . 'includes/class-ghld-migrate.php';
 require_once GHLD_PATH . 'includes/class-ghld-purge.php';
 require_once GHLD_PATH . 'includes/class-ghld-diagnostics.php';

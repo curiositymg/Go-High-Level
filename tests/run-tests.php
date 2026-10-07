@@ -2021,6 +2021,55 @@ ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'phot
 
 ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
 
+/* Upgrading must not throw away what the install already has. A step written
+ * outside a version branch runs again on every later upgrade: the cache flush
+ * meant for migration 3 sat in the function body, so bumping the number to 4 and
+ * then 5 re-ran it, and each release wiped the headshots — the one piece of data
+ * that comes back only from the single-contact endpoint, slowly. */
+
+$ghld_cached = array(
+	array( 'id' => 'm1', 'name' => 'Ayman Aboulela', 'photo' => 'https://services.leadconnectorhq.com/documents/download/aaa', 'specialty' => 'Internal Medicine' ),
+	array( 'id' => 'm2', 'name' => 'Azzam Adhal', 'photo' => 'https://services.leadconnectorhq.com/documents/download/bbb', 'specialty' => 'Geriatrics' ),
+);
+
+// An install already past the flush migration keeps its contacts, headshots included.
+update_option( 'ghld_settings', array_merge( $defaults, array( 'cache_photos' => 1 ) ) );
+update_option( 'ghld_contacts', $ghld_cached, false );
+update_option( 'ghld_migration', 4 );
+
+GHLD_Migrate::run();
+
+$ghld_after = get_option( 'ghld_contacts', array() );
+ghld_same( 2, count( $ghld_after ), 'upgrading an install that is past the flush keeps its cached contacts' );
+ghld_same(
+	'https://services.leadconnectorhq.com/documents/download/aaa',
+	isset( $ghld_after[0]['photo'] ) ? $ghld_after[0]['photo'] : '',
+	'and keeps the headshots, which only the slow per-contact pass can rebuild'
+);
+ghld_same( 0, (int) GHLD_Settings::get( 'cache_photos' ), 'while still undoing the local-copy default that 1.17.3 forced on' );
+ghld_same( GHLD_Migrate::CURRENT, (int) get_option( 'ghld_migration' ), 'and records that it is up to date' );
+
+// Running again changes nothing further.
+update_option( 'ghld_contacts', $ghld_cached, false );
+GHLD_Migrate::run();
+ghld_same( 2, count( get_option( 'ghld_contacts', array() ) ), 'a second run is a no-op rather than another flush' );
+
+// An install old enough to need the flush still gets it.
+update_option( 'ghld_contacts', $ghld_cached, false );
+update_option( 'ghld_migration', 0 );
+GHLD_Migrate::run();
+ghld_same( array(), get_option( 'ghld_contacts', array() ), 'an install predating the upload-ordering fix is still flushed, which is what that step was for' );
+ghld_same( 1, (int) GHLD_Settings::get( 'deep_sync' ), 'and still has full-record fetching turned on for it' );
+
+// Coming from 3 — past the flush, before the bad default — leaves data alone.
+update_option( 'ghld_contacts', $ghld_cached, false );
+update_option( 'ghld_migration', 3 );
+GHLD_Migrate::run();
+ghld_same( 2, count( get_option( 'ghld_contacts', array() ) ), 'and an install at 3 keeps its contacts too' );
+
+update_option( 'ghld_settings', $defaults );
+GHLD_Repository::flush();
+
 /* The dark-mode trap: prefers-color-scheme reports the visitor's device, not the
  * colour of the page the directory is on. A theme that stays light while the
  * device is dark then gets white text and white borders on white — invisible to

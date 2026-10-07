@@ -3,7 +3,7 @@
  * Plugin Name:       GoHighLevel Integration
  * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
- * Version:           1.18.0
+ * Version:           1.18.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Curiosity Marketing Group
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GHLD_VERSION', '1.18.0' );
+define( 'GHLD_VERSION', '1.18.1' );
 define( 'GHLD_FILE', __FILE__ );
 define( 'GHLD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GHLD_URL', plugin_dir_url( __FILE__ ) );
@@ -30,6 +30,7 @@ require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
 require_once GHLD_PATH . 'includes/class-ghld-rest.php';
 require_once GHLD_PATH . 'includes/class-ghld-seo.php';
+require_once GHLD_PATH . 'includes/class-ghld-migrate.php';
 require_once GHLD_PATH . 'includes/class-ghld-purge.php';
 require_once GHLD_PATH . 'includes/class-ghld-diagnostics.php';
 require_once GHLD_PATH . 'includes/class-ghld-admin.php';
@@ -44,38 +45,7 @@ require_once GHLD_PATH . 'includes/class-ghld-admin.php';
  * @return void
  */
 function ghld_migrate() {
-	$applied = (int) get_option( 'ghld_migration', 0 );
-
-	if ( $applied >= 5 ) {
-		return;
-	}
-
-	if ( $applied < 2 ) {
-		// Headshots in a file-upload field only arrive via the single-contact
-		// endpoint, so full-record fetching has to be on for them to work.
-		GHLD_Settings::update( array( 'deep_sync' => 1 ) );
-	}
-
-	// Cached contacts hold values that were flattened by the code that cached
-	// them. A file-upload field flattens to its URLs in the order the payload
-	// listed them, so a contact cached before uploads were ordered live-first
-	// keeps a replaced file's dead URL — and because that counts as "has a
-	// photo", nothing would ever re-fetch it. Drop the cache so the next sync
-	// rebuilds every contact with the current code.
-	GHLD_Repository::flush();
-
-	if ( 4 === $applied ) {
-		// Undo migration 4, which turned local headshot copies on for everyone
-		// on the strength of a conclusion that turned out to be wrong: those
-		// documents/download URLs do serve a visitor's browser. Worse, a local
-		// copy is served from this domain, so on a site behind a staging
-		// password gate it would put the headshots behind that gate — breaking
-		// the one part that was working. The setting and its button stay; only
-		// the unasked-for default goes back.
-		GHLD_Settings::update( array( 'cache_photos' => 0 ) );
-	}
-
-	update_option( 'ghld_migration', 5 );
+	GHLD_Migrate::run();
 }
 
 /**
