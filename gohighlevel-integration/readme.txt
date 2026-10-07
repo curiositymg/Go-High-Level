@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.2
+Stable tag: 1.17.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,24 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.3 =
+* Headshots now load for everybody, not only for whoever is signed in to
+  GoHighLevel. A headshot in a file-upload field is stored as a
+  services.leadconnectorhq.com/documents/download address, which is an API
+  endpoint rather than a public file: it answers a request carrying the API token
+  and refuses one from a visitor's browser. Pasting such an address into your own
+  browser appears to prove it public, but only because that browser holds a
+  GoHighLevel session. Everybody else got a failed image, which the directory
+  replaces with the initials circle — so their cards looked emptier than yours,
+  and no amount of cache clearing could change it. Copying headshots to this site
+  is therefore on by default now, and existing installs are switched on when they
+  update.
+* "Download every headshot now" copies them all immediately, in batches with a
+  progress bar, instead of sixty per sync in the background.
+* "Check the public page" requests the headshots on the page with no cookies and
+  reports how many a visitor can actually load, with the failing address and its
+  status.
 
 = 1.17.2 =
 * The directory carries its own stylesheet when the page has not already loaded

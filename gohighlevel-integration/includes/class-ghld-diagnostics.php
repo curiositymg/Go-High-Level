@@ -106,6 +106,7 @@ class GHLD_Diagnostics {
 			'specialties' => substr_count( $body, 'ghld-specialty' ),
 			'stylesheet'  => self::stylesheet( $body ),
 			'css'         => self::css( $body, $url ),
+			'photos'      => self::photos( $body ),
 			'headers'     => self::cache_headers( $response ),
 		);
 	}
@@ -148,6 +149,148 @@ class GHLD_Diagnostics {
 		}
 
 		return preg_match( '/gohighlevel-integration\.css/', $body ) ? __( '(no version)', 'gohighlevel-integration' ) : '';
+	}
+
+	/**
+	 * Whether the headshots on the page load for somebody who is not signed in.
+	 *
+	 * The failure this exists to catch: a headshot in a file-upload field is
+	 * stored as a GoHighLevel documents/download address, which is an API
+	 * endpoint and not a public file. It answers a request carrying the API
+	 * token and refuses a browser's. Testing such a URL by pasting it into a
+	 * browser that is signed in to GoHighLevel says it works, because for that
+	 * browser it does — and for nobody else. So the URLs are requested here with
+	 * no cookies at all, which is the only request that answers the question.
+	 *
+	 * @param string $body Response body.
+	 * @param int    $limit How many to sample.
+	 * @return array
+	 */
+	public static function photos( $body, $limit = 4 ) {
+		$report = array(
+			'checked'  => 0,
+			'loading'  => 0,
+			'failing'  => 0,
+			'external' => 0,
+			'examples' => array(),
+		);
+
+		if ( ! preg_match_all( '/<img[^>]*class=["\'][^"\']*ghld-avatar[^"\']*["\'][^>]*>/i', $body, $tags ) ) {
+			return $report;
+		}
+
+		$seen = array();
+
+		foreach ( $tags[0] as $tag ) {
+			if ( count( $seen ) >= $limit ) {
+				break;
+			}
+
+			if ( ! preg_match( '/src=["\']([^"\']+)["\']/i', $tag, $match ) ) {
+				continue;
+			}
+
+			$src = html_entity_decode( $match[1], ENT_QUOTES );
+
+			if ( isset( $seen[ $src ] ) || 0 !== strpos( $src, 'http' ) ) {
+				continue;
+			}
+
+			$seen[ $src ] = true;
+
+			if ( false !== strpos( $src, 'leadconnectorhq.com' ) ) {
+				$report['external']++;
+			}
+
+			$response = wp_remote_get(
+				$src,
+				array(
+					'timeout'    => 15,
+					'cookies'    => array(),
+					'user-agent' => 'GoHighLevel Integration cache check',
+				)
+			);
+
+			$report['checked']++;
+
+			if ( is_wp_error( $response ) ) {
+				$report['failing']++;
+				$report['examples'][] = array(
+					'url'    => $src,
+					'status' => 0,
+					'detail' => $response->get_error_message(),
+				);
+				continue;
+			}
+
+			$status = (int) wp_remote_retrieve_response_code( $response );
+
+			if ( 200 === $status ) {
+				$report['loading']++;
+				continue;
+			}
+
+			$report['failing']++;
+			$report['examples'][] = array(
+				'url'    => $src,
+				'status' => $status,
+				'detail' => '',
+			);
+		}
+
+		return $report;
+	}
+
+	/**
+	 * Whether the headshots load, said plainly.
+	 *
+	 * @param array $probe Result of probe().
+	 * @return array
+	 */
+	public static function photo_verdict( array $probe ) {
+		$side   = ! empty( $probe['fresh']['photos'] ) ? $probe['fresh'] : ( isset( $probe['cached'] ) ? $probe['cached'] : array() );
+		$photos = isset( $side['photos'] ) ? $side['photos'] : array();
+
+		if ( empty( $photos ) || empty( $photos['checked'] ) ) {
+			return array();
+		}
+
+		if ( empty( $photos['failing'] ) ) {
+			return array(
+				'state' => 'ok',
+				'title' => __( 'The headshots load for a visitor.', 'gohighlevel-integration' ),
+				'body'  => sprintf(
+					/* translators: %d: number checked. */
+					__( 'All %d sampled headshots were served to a request with no login.', 'gohighlevel-integration' ),
+					(int) $photos['checked']
+				),
+			);
+		}
+
+		$example = isset( $photos['examples'][0] ) ? $photos['examples'][0] : array();
+
+		return array(
+			'state' => 'error',
+			'title' => sprintf(
+				/* translators: 1: failing count, 2: checked count. */
+				__( '%1$d of %2$d headshots do not load for a visitor.', 'gohighlevel-integration' ),
+				(int) $photos['failing'],
+				(int) $photos['checked']
+			),
+			'body'  => empty( $photos['external'] )
+				? sprintf(
+					/* translators: 1: URL, 2: HTTP status. */
+					__( 'For example %1$s returned %2$s. The page carries an image the visitor\'s browser cannot fetch, and the directory replaces a failed headshot with the initials circle, which is why their cards look emptier than yours.', 'gohighlevel-integration' ),
+					isset( $example['url'] ) ? $example['url'] : '',
+					isset( $example['status'] ) && $example['status'] ? (string) $example['status'] : ( isset( $example['detail'] ) ? $example['detail'] : '?' )
+				)
+				: sprintf(
+					/* translators: 1: URL, 2: HTTP status. */
+					__( 'They point straight at GoHighLevel — for example %1$s, which returned %2$s. That address is an API endpoint, not a public file: it answers a request carrying your API token and refuses a visitor\'s browser. It appears to work when you open it yourself only because your browser is signed in to GoHighLevel. Turn on "Copy headshots here" and press "Download every headshot now" so the cards point at copies on this site.', 'gohighlevel-integration' ),
+					isset( $example['url'] ) ? $example['url'] : '',
+					isset( $example['status'] ) && $example['status'] ? (string) $example['status'] : ( isset( $example['detail'] ) ? $example['detail'] : '?' )
+				),
+		);
 	}
 
 	/**

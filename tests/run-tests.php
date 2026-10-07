@@ -1972,6 +1972,55 @@ ghld_same( '12', isset( $read['post'] ) ? $read['post'] : '', 'naming the page i
 ghld_ok( ! empty( $read['rendered'] ) && false === strpos( $read['rendered'], ' ' ), 'with a timestamp that survives being split on whitespace' );
 ghld_same( GHLD_VERSION, isset( $read['v'] ) ? $read['v'] : '', 'and the version that built it' );
 
+/* The headshot failure: a file-upload field stores an API address, not a public
+ * file, so an <img> pointing at it loads for a browser signed in to GoHighLevel
+ * and for nobody else. The directory then swaps the failed image for initials,
+ * which is why other people's cards look emptier. */
+
+ghld_ok(
+	GHLD_Photos::needs_local_copy( 'https://services.leadconnectorhq.com/documents/download/kKg9m01DoiWvuDN6GhxD' ),
+	'a GoHighLevel documents address is recognised as needing a local copy'
+);
+ghld_ok(
+	! GHLD_Photos::needs_local_copy( 'https://example.test/wp-content/uploads/gohighlevel-photos/abc-123.jpg' ),
+	'and a copy already on this site does not'
+);
+ghld_ok(
+	! empty( GHLD_Settings::defaults()['cache_photos'] ),
+	'copying headshots here is on by default, because pointing at the API address only ever works for whoever is signed in'
+);
+
+// The probe requests the headshots with no cookies, which is the only request
+// that answers whether a visitor can see them.
+$ghld_cards = '<!-- ghld v=1.17.3 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T17:00:00Z css=head -->'
+	. '<img class="ghld-avatar" src="https://services.leadconnectorhq.com/documents/download/aaa" data-ghld-initials="AA" />'
+	. '<img class="ghld-avatar" src="https://services.leadconnectorhq.com/documents/download/bbb" data-ghld-initials="BB" />';
+
+ghld_test_http( 'https://services.leadconnectorhq.com/documents/download/aaa', array( 'status' => 401, 'body' => 'Unauthorized' ) );
+ghld_test_http( 'https://services.leadconnectorhq.com/documents/download/bbb', array( 'status' => 401, 'body' => 'Unauthorized' ) );
+
+$ghld_shots = GHLD_Diagnostics::photos( $ghld_cards );
+ghld_same( 2, $ghld_shots['checked'], 'the probe samples the headshots on the page' );
+ghld_same( 2, $ghld_shots['failing'], 'and reports the ones a visitor cannot load' );
+ghld_same( 2, $ghld_shots['external'], 'noting that they point at GoHighLevel rather than this site' );
+
+$ghld_said = GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'photos' => $ghld_shots ) ) );
+ghld_same( 'error', $ghld_said['state'], 'which is a fault, not a pass' );
+ghld_ok( false !== strpos( $ghld_said['body'], 'API endpoint' ), 'and the explanation names the cause' );
+ghld_ok( false !== strpos( $ghld_said['body'], 'signed in' ), 'including why it looks fine to the person checking' );
+
+// Local copies, served by this site, load for everybody.
+$ghld_local = '<!-- ghld v=1.17.3 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T17:00:00Z css=head -->'
+	. '<img class="ghld-avatar" src="https://example.test/wp-content/uploads/gohighlevel-photos/c1-abc.jpg" data-ghld-initials="AA" />';
+ghld_test_http( 'https://example.test/wp-content/uploads/gohighlevel-photos/c1-abc.jpg', array( 'status' => 200, 'body' => 'JPEGDATA' ) );
+
+$ghld_shots = GHLD_Diagnostics::photos( $ghld_local );
+ghld_same( 1, $ghld_shots['loading'], 'a headshot copied here loads for a visitor' );
+ghld_same( 0, $ghld_shots['external'], 'and is not pointing at GoHighLevel any more' );
+ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'photos' => $ghld_shots ) ) )['state'], 'so the headshots are reported as working' );
+
+ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
+
 /* The stylesheet has to actually reach the page, which enqueuing alone does not
  * promise: a directory rendered after <head> has been sent, or a page whose CSS
  * an optimiser rewrote, loses it — and loses it only for the visitors who are

@@ -314,6 +314,98 @@ class GHLD_Repository {
 	}
 
 	/**
+	 * Download headshots for a while and report where it got to.
+	 *
+	 * The per-sync budget mirrors sixty headshots at a time, which is right for
+	 * a background job and far too slow when a directory is live and every
+	 * visitor is seeing broken images. This does the same work on demand, in
+	 * batches a browser drives, so a few hundred headshots land in minutes.
+	 *
+	 * @param float $seconds Time budget for this batch.
+	 * @return array|WP_Error
+	 */
+	public static function localize_once( $seconds = 10 ) {
+		if ( ! GHLD_Settings::is_configured() ) {
+			return new WP_Error( 'ghld_not_configured', __( 'Add your GoHighLevel API token first.', 'gohighlevel-integration' ) );
+		}
+
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		if ( ! is_array( $contacts ) || empty( $contacts ) ) {
+			return new WP_Error( 'ghld_no_contacts', __( 'There are no cached contacts yet — press "Sync now" first.', 'gohighlevel-integration' ) );
+		}
+
+		$started    = microtime( true );
+		$downloaded = 0;
+		$remaining  = 0;
+		$failed     = 0;
+		$usable     = 0;
+		$total      = 0;
+
+		foreach ( $contacts as $index => $contact ) {
+			$url = isset( $contact['photo'] ) ? (string) $contact['photo'] : '';
+
+			if ( '' === $url || empty( $contact['id'] ) ) {
+				continue;
+			}
+
+			$total++;
+
+			// Already local, or never needed a copy in the first place.
+			if ( ! GHLD_Photos::needs_local_copy( $url ) ) {
+				$usable++;
+				continue;
+			}
+
+			$existing = GHLD_Photos::localize( $url, $contact['id'], false );
+
+			if ( '' !== $existing ) {
+				$contacts[ $index ]['photo'] = $existing;
+				$usable++;
+				continue;
+			}
+
+			if ( ( microtime( true ) - $started ) >= $seconds ) {
+				$remaining++;
+				continue;
+			}
+
+			$local = GHLD_Photos::localize( $url, $contact['id'], true );
+
+			if ( '' === $local ) {
+				$failed++;
+				continue;
+			}
+
+			$contacts[ $index ]['photo'] = $local;
+			$downloaded++;
+			$usable++;
+		}
+
+		update_option( self::OPTION_CONTACTS, $contacts, false );
+		self::$memo = null;
+
+		self::update_state(
+			array(
+				'photos_downloaded' => $downloaded,
+				'photos_pending'    => $remaining,
+				'photos_failed'     => $failed,
+			)
+		);
+
+		if ( $downloaded > 0 ) {
+			GHLD_Purge::flush( 'photos' );
+		}
+
+		return array(
+			'total'      => $total,
+			'remaining'  => $remaining,
+			'downloaded' => $downloaded,
+			'usable'     => $usable,
+			'failed'     => $failed,
+		);
+	}
+
+	/**
 	 * Keep the richer parts of a cached contact when rebuilding from the list.
 	 *
 	 * @param array $fresh    Contact as the contact list describes it.

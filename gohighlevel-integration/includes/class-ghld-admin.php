@@ -32,6 +32,7 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_purge', array( __CLASS__, 'handle_purge' ) );
 		add_action( 'admin_post_ghld_check', array( __CLASS__, 'handle_check' ) );
 		add_action( 'wp_ajax_ghld_enrich_batch', array( __CLASS__, 'handle_enrich_batch' ) );
+		add_action( 'wp_ajax_ghld_photos_batch', array( __CLASS__, 'handle_photos_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
 	}
@@ -120,9 +121,10 @@ class GHLD_Admin {
 			'ghld-admin',
 			'GHLDAdmin',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'ghld_enrich_batch' ),
-				'i18n'    => array(
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'nonce'       => wp_create_nonce( 'ghld_enrich_batch' ),
+				'photosNonce' => wp_create_nonce( 'ghld_photos_batch' ),
+				'i18n'        => array(
 					'starting' => __( 'Starting…', 'gohighlevel-integration' ),
 					/* translators: 1: contacts done, 2: total contacts, 3: headshots found. */
 					'progress' => __( '%1$s of %2$s contacts checked — %3$s headshots so far.', 'gohighlevel-integration' ),
@@ -130,6 +132,10 @@ class GHLD_Admin {
 					'done'     => __( 'Finished. %s contacts have a headshot.', 'gohighlevel-integration' ),
 					'failed'   => __( 'That run failed. Press the button again to carry on from where it stopped.', 'gohighlevel-integration' ),
 					'stalled'  => __( 'Stopped after a lot of batches without finishing — press again to continue.', 'gohighlevel-integration' ),
+					/* translators: 1: headshots copied, 2: headshots needing a copy. */
+					'photos'   => __( '%1$s of %2$s headshots copied here.', 'gohighlevel-integration' ),
+					/* translators: 1: headshots now usable, 2: headshots that could not be copied. */
+					'photosOk' => __( 'Finished. %1$s headshots are served from this site; %2$s could not be copied.', 'gohighlevel-integration' ),
 				),
 			)
 		);
@@ -169,6 +175,27 @@ class GHLD_Admin {
 		GHLD_Purge::flush( 'manual' );
 
 		self::redirect( 'success', __( 'Asked the page caches to clear. Check the directory in a private window.', 'gohighlevel-integration' ) );
+	}
+
+	/**
+	 * Download one batch of headshots for the browser-driven loop.
+	 *
+	 * @return void
+	 */
+	public static function handle_photos_batch() {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do that.', 'gohighlevel-integration' ) ), 403 );
+		}
+
+		check_ajax_referer( 'ghld_photos_batch', 'nonce' );
+
+		$result = GHLD_Repository::localize_once( 10 );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( $result );
 	}
 
 	/**
@@ -621,7 +648,7 @@ class GHLD_Admin {
 								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[cache_photos]" value="1" <?php checked( ! empty( $settings['cache_photos'] ) ); ?> />
 								<?php esc_html_e( 'Copy headshots into this site\'s uploads folder', 'gohighlevel-integration' ); ?>
 							</label>
-							<p class="description"><?php esc_html_e( 'Off by default — GoHighLevel serves the file URLs publicly, so the cards can point straight at them. Turn it on to stop depending on those URLs staying reachable; downloads run in batches during sync.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Leave this on. A headshot in a file-upload field is stored as a GoHighLevel documents/download address, which is an API endpoint rather than a public file: it answers a request carrying your API token and refuses one from a visitor\'s browser, which then shows the initials circle instead. Opening such an address yourself appears to work only because your browser is signed in to GoHighLevel. With this on, each headshot is copied here once and the cards point at the copy, so everybody sees it. Sixty are copied per sync; "Download every headshot now" above does the rest immediately.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -1017,6 +1044,19 @@ class GHLD_Admin {
 				<?php esc_html_e( 'Works through every contact in batches without waiting for the background schedule, and shows how far it has got. Leave the page open until it finishes; if you close it, press the button again and it carries on from where it stopped.', 'gohighlevel-integration' ); ?>
 			</p>
 
+			<p>
+				<button type="button" class="button button-primary" data-ghld-photos-all>
+					<?php esc_html_e( 'Download every headshot now', 'gohighlevel-integration' ); ?>
+				</button>
+				<span data-ghld-photos-status style="margin-left:.75em"></span>
+			</p>
+			<div style="max-width:32em;height:6px;background:#dcdcde;border-radius:3px;overflow:hidden;margin:0 0 1em">
+				<div data-ghld-photos-bar style="width:0;height:100%;background:#2271b1;transition:width .2s"></div>
+			</div>
+			<p class="description" style="margin-bottom:1.5em">
+				<?php esc_html_e( 'A headshot stored in a file-upload field lives behind GoHighLevel\'s API, which serves it to a request carrying your token and refuses one from a visitor\'s browser. Each one therefore has to be copied here once before anybody but you can see it. Sixty are copied per sync in the background; this does the rest now.', 'gohighlevel-integration' ); ?>
+			</p>
+
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="ghld_inspect" />
 				<?php wp_nonce_field( 'ghld_inspect' ); ?>
@@ -1129,6 +1169,18 @@ class GHLD_Admin {
 			</p>
 
 			<?php
+			$ghld_photos = GHLD_Diagnostics::photo_verdict( $probe );
+
+			if ( ! empty( $ghld_photos ) ) :
+				$ghld_photo_notice = 'ok' === $ghld_photos['state'] ? 'notice-success' : 'notice-error';
+				?>
+				<p class="notice <?php echo esc_attr( $ghld_photo_notice ); ?>" style="padding:8px 12px">
+					<strong><?php echo esc_html( $ghld_photos['title'] ); ?></strong><br />
+					<?php echo esc_html( $ghld_photos['body'] ); ?>
+				</p>
+			<?php endif; ?>
+
+			<?php
 			$ghld_css = GHLD_Diagnostics::css_verdict( $probe );
 
 			if ( ! empty( $ghld_css ) ) :
@@ -1157,6 +1209,7 @@ class GHLD_Admin {
 						'stylesheet'  => __( 'Stylesheet it asks for', 'gohighlevel-integration' ),
 						'css_route'   => __( 'How the styling got there', 'gohighlevel-integration' ),
 						'css_status'  => __( 'Stylesheet request', 'gohighlevel-integration' ),
+						'photos'      => __( 'Headshots a visitor can load', 'gohighlevel-integration' ),
 						'synced'      => __( 'Last sync it knew about', 'gohighlevel-integration' ),
 						'cards'       => __( 'Cards on the page', 'gohighlevel-integration' ),
 						'specialties' => __( 'Specialty lines on the page', 'gohighlevel-integration' ),
@@ -1277,6 +1330,19 @@ class GHLD_Admin {
 				return self::css_route_label( isset( $side['css'] ) ? $side['css'] : array() );
 			case 'css_status':
 				return self::css_status_label( isset( $side['css'] ) ? $side['css'] : array() );
+			case 'photos':
+				$photos = isset( $side['photos'] ) ? $side['photos'] : array();
+
+				if ( empty( $photos['checked'] ) ) {
+					return __( 'none on the page', 'gohighlevel-integration' );
+				}
+
+				return sprintf(
+					/* translators: 1: loading, 2: sampled. */
+					__( '%1$d of %2$d sampled', 'gohighlevel-integration' ),
+					(int) $photos['loading'],
+					(int) $photos['checked']
+				);
 		}
 
 		return '—';

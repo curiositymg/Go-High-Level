@@ -92,5 +92,91 @@
 			status.textContent = config.i18n.starting;
 			step( true );
 		} );
+
+		initPhotos();
 	} );
+
+	/**
+	 * Drive the "Download every headshot now" loop.
+	 *
+	 * Same shape as the contact loop: a headshot behind GoHighLevel's API has to
+	 * be copied here one at a time, and several hundred copies outlast a single
+	 * request.
+	 */
+	function initPhotos() {
+		var button = document.querySelector( '[data-ghld-photos-all]' );
+		var status = document.querySelector( '[data-ghld-photos-status]' );
+		var bar = document.querySelector( '[data-ghld-photos-bar]' );
+
+		if ( ! button || ! status ) {
+			return;
+		}
+
+		var batches = 0;
+
+		function step() {
+			batches++;
+
+			if ( batches > MAX_BATCHES ) {
+				status.textContent = config.i18n.stalled;
+				button.disabled = false;
+
+				return;
+			}
+
+			var body = new FormData();
+			body.append( 'action', 'ghld_photos_batch' );
+			body.append( 'nonce', config.photosNonce );
+
+			fetch( config.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: body
+			} )
+				.then( function ( response ) {
+					return response.json();
+				} )
+				.then( function ( payload ) {
+					if ( ! payload || ! payload.success ) {
+						status.textContent = ( payload && payload.data && payload.data.message ) || config.i18n.failed;
+						button.disabled = false;
+
+						return;
+					}
+
+					var data = payload.data;
+
+					status.textContent = config.i18n.photos
+						.replace( '%1$s', data.usable )
+						.replace( '%2$s', data.total );
+
+					if ( bar ) {
+						bar.style.width = data.total ? Math.round( ( data.usable / data.total ) * 100 ) + '%' : '0';
+					}
+
+					if ( data.remaining > 0 ) {
+						step();
+
+						return;
+					}
+
+					status.textContent = config.i18n.photosOk
+						.replace( '%1$s', data.usable )
+						.replace( '%2$s', data.failed );
+					button.disabled = false;
+				} )
+				.catch( function () {
+					status.textContent = config.i18n.failed;
+					button.disabled = false;
+				} );
+		}
+
+		button.addEventListener( 'click', function ( event ) {
+			event.preventDefault();
+			button.disabled = true;
+			batches = 0;
+			status.textContent = config.i18n.starting;
+			step();
+		} );
+	}
 }() );
