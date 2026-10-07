@@ -20,7 +20,7 @@ $ghld_scope   = $data['scope'];
 // The page heading carries the same "Name, Title" line as the card.
 $ghld_heading = GHLD_Shortcode::display_name( $ghld_contact, $ghld_scope );
 ?>
-<div class="ghld-directory ghld-profile-wrap" data-ghld-profile>
+<div class="ghld-directory ghld-profile-wrap" data-ghld-profile<?php echo GHLD_Shortcode::color_scheme_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed attribute or nothing. ?>>
 	<p class="ghld-profile-back">
 		<a href="<?php echo esc_url( $data['back'] ); ?>" class="btn-blue">
 			<span aria-hidden="true">&larr;</span>

@@ -15,7 +15,7 @@ $ghld_scope = $data['scope'];
 <div
 	id="<?php echo esc_attr( $data['dom_id'] ); ?>"
 	class="ghld-directory ghld-layout-<?php echo esc_attr( $ghld_scope['layout'] ); ?>"
-	data-ghld-instance="<?php echo esc_attr( $data['instance'] ); ?>"
+	data-ghld-instance="<?php echo esc_attr( $data['instance'] ); ?>"<?php echo GHLD_Shortcode::color_scheme_attr(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed attribute or nothing. ?>
 	style="--ghld-columns:<?php echo esc_attr( (string) $ghld_scope['columns'] ); ?>"
 >
 	<?php if ( ! empty( $ghld_scope['filters'] ) ) : ?>

@@ -32,6 +32,7 @@ class GHLD_Settings {
 			'purge_cache'   => 1,
 			'no_cache_directory' => 0,
 			'inline_css'    => 0,
+			'dark_mode'     => 0,
 			'deep_sync'     => 1,
 			'cache_photos'  => 0,
 			'include_tags'  => 'member - physician',
@@ -219,6 +220,7 @@ class GHLD_Settings {
 		$clean['purge_cache']   = empty( $input['purge_cache'] ) ? 0 : 1;
 		$clean['no_cache_directory'] = empty( $input['no_cache_directory'] ) ? 0 : 1;
 		$clean['inline_css']   = empty( $input['inline_css'] ) ? 0 : 1;
+		$clean['dark_mode']    = empty( $input['dark_mode'] ) ? 0 : 1;
 		$clean['include_tags']  = isset( $input['include_tags'] ) ? sanitize_text_field( $input['include_tags'] ) : '';
 		$clean['exclude_tags']  = isset( $input['exclude_tags'] ) ? sanitize_text_field( $input['exclude_tags'] ) : '';
 		$clean['photo_field']   = isset( $input['photo_field'] ) ? sanitize_text_field( $input['photo_field'] ) : '';

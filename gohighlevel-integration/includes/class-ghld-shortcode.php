@@ -250,6 +250,25 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * The colour-scheme attribute for the directory wrapper.
+	 *
+	 * Empty unless the site has said its theme follows the visitor's system
+	 * appearance. Without that, the directory keeps colours that read on a light
+	 * page, because a theme that stays light while the system is dark is the
+	 * common case and painting white on white is the worst possible failure: it
+	 * looks perfect to anyone whose machine is in light mode.
+	 *
+	 * @return string Attribute markup, or an empty string.
+	 */
+	public static function color_scheme_attr() {
+		if ( empty( GHLD_Settings::get( 'dark_mode', 0 ) ) ) {
+			return '';
+		}
+
+		return ' data-ghld-color-scheme="auto"';
+	}
+
+	/**
 	 * Whether the page being served shows the directory.
 	 *
 	 * @return bool

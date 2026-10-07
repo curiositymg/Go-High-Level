@@ -330,14 +330,26 @@
 	color: var(--ghld-muted);
 }
 
+/* Dark mode, only where the page behind it is actually dark ---------------- */
+
+/*
+ * prefers-color-scheme reports the visitor's operating system, not the colour of
+ * the page this directory is sitting on. Acting on it alone painted white text,
+ * white borders and transparent cards onto themes that stay light whatever the
+ * system says — invisible content for every visitor in dark mode, and perfectly
+ * fine for everybody else, which is as hard a fault to find as it sounds. The
+ * tokens below therefore wait for the site to say its theme follows the system
+ * too ("Follow the visitor's dark mode", which sets this attribute). A theme can
+ * also just redefine the tokens, as the top of this file describes.
+ */
 @media (prefers-color-scheme: dark) {
-	.ghld-directory {
+	.ghld-directory[data-ghld-color-scheme="auto"] {
 		--ghld-border: rgba(255, 255, 255, 0.18);
 		--ghld-surface: rgba(255, 255, 255, 0.04);
 		--ghld-muted: rgba(255, 255, 255, 0.68);
 	}
 
-	.ghld-avatar {
+	.ghld-directory[data-ghld-color-scheme="auto"] .ghld-avatar {
 		background: rgba(255, 255, 255, 0.08);
 	}
 }

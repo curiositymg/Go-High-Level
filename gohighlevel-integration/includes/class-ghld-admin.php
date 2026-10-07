@@ -664,6 +664,18 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Follow the visitor\'s dark mode', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[dark_mode]" value="1" <?php checked( ! empty( $settings['dark_mode'] ) ); ?> />
+								<?php esc_html_e( 'Use light-on-dark colours when the visitor\'s device is set to dark mode', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Only tick this if your theme also turns dark with the visitor\'s device. A device setting says nothing about the colour of the page the directory sits on: if the theme stays light while the directory goes dark, the result is white text and white borders on a white page — invisible to every visitor in dark mode, and perfectly normal to anyone whose device is in light mode, including whoever is checking. Left off, the directory keeps colours that read on a light page. A dark theme can also restyle the directory by redefining the --ghld-* custom properties.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Write the styling into the page', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>

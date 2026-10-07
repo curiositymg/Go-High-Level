@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.5
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,21 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.18.0 =
+* Fixes the directory being invisible to visitors whose device is in dark mode.
+  The stylesheet redefined its colours inside a prefers-color-scheme: dark query,
+  which reports the visitor's operating system and says nothing about the colour
+  of the page the directory sits on. On a theme that stays light — most themes —
+  a visitor in dark mode got white text, white borders and transparent cards on a
+  white page: the specialty, title, organisation and location lines unreadable and
+  the card outlines gone, while names and headshots, which do not use those
+  colours, still showed. To anyone whose device is in light mode the same page
+  looked perfect, which is why this survived cache purges, a host investigation
+  and several wrong diagnoses.
+* The dark colours are still available: tick "Follow the visitor's dark mode" if
+  your theme turns dark with the device too. A theme can also redefine the
+  --ghld-* custom properties, as it always could.
 
 = 1.17.5 =
 * "Never cache the directory" now works on a page built with a page builder.

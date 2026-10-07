@@ -2021,6 +2021,58 @@ ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'phot
 
 ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
 
+/* The dark-mode trap: prefers-color-scheme reports the visitor's device, not the
+ * colour of the page the directory is on. A theme that stays light while the
+ * device is dark then gets white text and white borders on white — invisible to
+ * every visitor in dark mode and flawless to anyone in light mode, so whoever is
+ * checking sees nothing wrong. The dark tokens therefore have to be asked for. */
+
+$ghld_css_file = file_get_contents( GHLD_PATH . 'assets/css/gohighlevel-integration.css' );
+
+ghld_ok(
+	false !== strpos( $ghld_css_file, '@media (prefers-color-scheme: dark)' ),
+	'the dark colours are still there for a site that wants them'
+);
+
+// Every selector inside the dark block must carry the opt-in attribute. This is
+// the assertion whose absence let white-on-white ship.
+preg_match( '/@media \(prefers-color-scheme: dark\) \{(.*?)\n\}/s', $ghld_css_file, $ghld_dark );
+$ghld_block = isset( $ghld_dark[1] ) ? $ghld_dark[1] : '';
+
+ghld_ok( '' !== $ghld_block, 'the dark block can be read back out of the stylesheet' );
+
+$ghld_ungated = array();
+foreach ( preg_split( '/\n/', $ghld_block ) as $ghld_line ) {
+	$ghld_line = trim( $ghld_line );
+
+	// Selector lines are the ones opening a rule.
+	if ( '' === $ghld_line || '}' === $ghld_line || false === strpos( $ghld_line, '{' ) ) {
+		continue;
+	}
+
+	if ( false === strpos( $ghld_line, 'data-ghld-color-scheme' ) ) {
+		$ghld_ungated[] = $ghld_line;
+	}
+}
+
+ghld_same( array(), $ghld_ungated, 'and every rule in it waits for the opt-in attribute, so none can repaint a light theme' );
+
+ghld_ok(
+	false !== strpos( $ghld_css_file, '--ghld-muted: rgba(0, 0, 0, 0.62)' ),
+	'the default muted colour is dark, which reads on the light page a theme usually has'
+);
+
+// The attribute itself is only emitted when the site asks for it.
+update_option( 'ghld_settings', $defaults );
+ghld_same( '', GHLD_Shortcode::color_scheme_attr(), 'by default the directory does not follow the device at all' );
+ghld_ok( false === strpos( GHLD_Shortcode::render( array() ), 'data-ghld-color-scheme' ), 'so the rendered wrapper carries no opt-in' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'dark_mode' => 1 ) ) );
+ghld_ok( false !== strpos( GHLD_Shortcode::color_scheme_attr(), 'data-ghld-color-scheme="auto"' ), 'asked for, it opts in' );
+ghld_ok( false !== strpos( GHLD_Shortcode::render( array() ), 'data-ghld-color-scheme="auto"' ), 'and the wrapper says so, which is what lets the dark tokens apply' );
+
+update_option( 'ghld_settings', $defaults );
+
 /* Asking downstream caches not to keep the page is the only lever that reaches a
  * copy held in somebody else's browser, office proxy or CDN edge — and it only
  * fires on a page the plugin recognises as showing the directory, so that
