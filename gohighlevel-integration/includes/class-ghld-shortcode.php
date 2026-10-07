@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 class GHLD_Shortcode {
 
 	const TAG              = 'ghl_directory';
+	const HANDLE           = 'gohighlevel-integration';
 	const INSTANCE_PREFIX  = 'ghld_inst_';
 	const QUERY_PREFIX     = 'ghld_';
 	const INSTANCE_TTL     = WEEK_IN_SECONDS;
@@ -36,11 +37,11 @@ class GHLD_Shortcode {
 	 * @return void
 	 */
 	public static function register_assets() {
-		wp_register_style( 'gohighlevel-integration', GHLD_URL . 'assets/css/gohighlevel-integration.css', array(), GHLD_VERSION );
-		wp_register_script( 'gohighlevel-integration', GHLD_URL . 'assets/js/gohighlevel-integration.js', array(), GHLD_VERSION, true );
+		wp_register_style( self::HANDLE, GHLD_URL . 'assets/css/gohighlevel-integration.css', array(), GHLD_VERSION );
+		wp_register_script( self::HANDLE, GHLD_URL . 'assets/js/gohighlevel-integration.js', array(), GHLD_VERSION, true );
 
 		wp_localize_script(
-			'gohighlevel-integration',
+			self::HANDLE,
 			'GHLDirectory',
 			array(
 				'endpoint' => esc_url_raw( rest_url( GHLD_Rest::NAMESPACE_V1 . '/contacts' ) ),
@@ -64,8 +65,8 @@ class GHLD_Shortcode {
 	 * @return void
 	 */
 	public static function enqueue_assets() {
-		wp_enqueue_style( 'gohighlevel-integration' );
-		wp_enqueue_script( 'gohighlevel-integration' );
+		wp_enqueue_style( self::HANDLE );
+		wp_enqueue_script( self::HANDLE );
 	}
 
 	/**
@@ -126,6 +127,86 @@ class GHLD_Shortcode {
 	}
 
 	/**
+	 * Make sure the stylesheet actually reaches the page.
+	 *
+	 * Enqueuing is the right way to ask for a stylesheet, and it is not a
+	 * guarantee that one arrives. The <link> is written into <head>, which has
+	 * already been sent by the time a shortcode inside the content runs, so a
+	 * page whose directory is rendered by a builder, a widget or a template
+	 * rather than from post_content misses that window; WordPress will print
+	 * such a stylesheet in the footer instead, unless an optimisation plugin —
+	 * which typically runs for anonymous visitors and not for logged-in
+	 * administrators — drops or rewrites it on the way out. Either way the
+	 * styling is missing for everybody except the person checking.
+	 *
+	 * So the markup carries its own stylesheet whenever the page has not
+	 * already printed one. A <link> in the body is valid, is part of the HTML a
+	 * cache stores, and costs nothing when the head got there first.
+	 *
+	 * @return string Markup to put in front of the directory, possibly empty.
+	 */
+	protected static function stylesheet_fallback() {
+		// Before wp_head, the normal path still has its chance.
+		if ( ! did_action( 'wp_head' ) || wp_style_is( self::HANDLE, 'done' ) ) {
+			return '';
+		}
+
+		if ( ! empty( GHLD_Settings::get( 'inline_css', 0 ) ) ) {
+			$css = self::stylesheet_contents();
+
+			if ( '' !== $css ) {
+				return '<style id="ghld-css-inline">' . $css . '</style>' . "\n";
+			}
+		}
+
+		return sprintf(
+			'<link rel="stylesheet" id="ghld-css-late" href="%s" />' . "\n",
+			esc_url( GHLD_URL . 'assets/css/gohighlevel-integration.css?ver=' . GHLD_VERSION )
+		);
+	}
+
+	/**
+	 * The stylesheet's own text, for inlining.
+	 *
+	 * The last resort for an install where the file is on disk but its URL does
+	 * not resolve — a rewritten asset host, a CDN that never fetched it, a
+	 * permission that stops the webserver serving it. Inlining sidesteps the
+	 * URL entirely.
+	 *
+	 * @return string
+	 */
+	protected static function stylesheet_contents() {
+		$path = GHLD_PATH . 'assets/css/gohighlevel-integration.css';
+
+		if ( ! is_readable( $path ) ) {
+			return '';
+		}
+
+		$css = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
+		// The file is ours, but it is going inside a <style> element, and
+		// nothing that could close one early belongs in there.
+		return str_replace( array( '</style', '<script' ), '', (string) $css );
+	}
+
+	/**
+	 * How the stylesheet reached this page, for the render stamp.
+	 *
+	 * Read off what the fallback actually emitted rather than decided again, so
+	 * the stamp cannot claim a route the page did not take.
+	 *
+	 * @param string $fallback Output of stylesheet_fallback().
+	 * @return string
+	 */
+	protected static function stylesheet_route( $fallback ) {
+		if ( '' !== $fallback ) {
+			return false === strpos( $fallback, '<style' ) ? 'late' : 'inline';
+		}
+
+		return wp_style_is( self::HANDLE, 'done' ) ? 'head' : 'queued';
+	}
+
+	/**
 	 * Stamp the output with what produced it.
 	 *
 	 * An HTML comment, so it costs a visitor nothing and shows a browser
@@ -141,8 +222,9 @@ class GHLD_Shortcode {
 	 * @return string
 	 */
 	protected static function mark( $html, $kind ) {
-		$state = GHLD_Repository::state();
-		$synced = isset( $state['synced_at'] ) ? (int) $state['synced_at'] : 0;
+		$state    = GHLD_Repository::state();
+		$synced   = isset( $state['synced_at'] ) ? (int) $state['synced_at'] : 0;
+		$fallback = self::stylesheet_fallback();
 
 		$facts = array(
 			'v'        => GHLD_VERSION,
@@ -154,6 +236,7 @@ class GHLD_Shortcode {
 			// in half.
 			'synced'   => $synced ? gmdate( 'Y-m-d\\TH:i\\Z', $synced ) : 'never',
 			'rendered' => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
+			'css'      => self::stylesheet_route( $fallback ),
 		);
 
 		$pairs = array();
@@ -163,7 +246,7 @@ class GHLD_Shortcode {
 			$pairs[] = $key . '=' . str_replace( array( '--', '>', ' ' ), '', (string) $value );
 		}
 
-		return "<!-- ghld " . implode( ' ', $pairs ) . " -->\n" . $html;
+		return "<!-- ghld " . implode( ' ', $pairs ) . " -->\n" . $fallback . $html;
 	}
 
 	/**

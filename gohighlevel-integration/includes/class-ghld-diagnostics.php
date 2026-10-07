@@ -105,6 +105,7 @@ class GHLD_Diagnostics {
 			'cards'       => substr_count( $body, 'ghld-grid-item' ),
 			'specialties' => substr_count( $body, 'ghld-specialty' ),
 			'stylesheet'  => self::stylesheet( $body ),
+			'css'         => self::css( $body, $url ),
 			'headers'     => self::cache_headers( $response ),
 		);
 	}
@@ -150,6 +151,86 @@ class GHLD_Diagnostics {
 	}
 
 	/**
+	 * Whether the styling actually reaches a visitor, and how.
+	 *
+	 * A page can ask for a stylesheet and not get one: the <link> never printed,
+	 * or it printed and the URL does not serve. Both look the same in a browser
+	 * — an unstyled page — and neither is visible from the markup alone, so the
+	 * URL is requested as well, anonymously, like everything else here.
+	 *
+	 * @param string $body Response body.
+	 * @param string $page URL the body came from, for resolving a relative href.
+	 * @return array
+	 */
+	public static function css( $body, $page = '' ) {
+		$report = array(
+			'inline' => false !== strpos( $body, 'id="ghld-css-inline"' ),
+			'linked' => false !== strpos( $body, 'gohighlevel-integration.css' ),
+			'route'  => '',
+			'url'    => '',
+			'status' => 0,
+			'bytes'  => 0,
+			'ours'   => false,
+		);
+
+		$marker = self::marker( $body );
+		if ( isset( $marker['css'] ) ) {
+			$report['route'] = $marker['css'];
+		}
+
+		if ( $report['inline'] ) {
+			// Nothing to fetch: the rules are in the page.
+			$report['ours'] = false !== strpos( $body, '.ghld-' );
+
+			return $report;
+		}
+
+		if ( ! $report['linked'] || ! preg_match( '/href=["\']([^"\']*gohighlevel-integration\.css[^"\']*)["\']/', $body, $match ) ) {
+			return $report;
+		}
+
+		$href = html_entity_decode( $match[1], ENT_QUOTES );
+
+		// A protocol-relative or root-relative href has to be resolved against
+		// the page before it can be requested.
+		if ( 0 === strpos( $href, '//' ) ) {
+			$href = 'https:' . $href;
+		} elseif ( 0 === strpos( $href, '/' ) ) {
+			$parts = wp_parse_url( $page );
+			if ( ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+				$href = $parts['scheme'] . '://' . $parts['host'] . $href;
+			}
+		}
+
+		$report['url'] = $href;
+
+		$response = wp_remote_get(
+			$href,
+			array(
+				'timeout'    => 15,
+				'cookies'    => array(),
+				'user-agent' => 'GoHighLevel Integration cache check',
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			$report['error'] = $response->get_error_message();
+
+			return $report;
+		}
+
+		$css = (string) wp_remote_retrieve_body( $response );
+
+		$report['status'] = (int) wp_remote_retrieve_response_code( $response );
+		$report['bytes']  = strlen( $css );
+		// A 200 proves something answered, not that it answered with our CSS: a
+		// rewritten asset host or a catch-all rule happily returns a page.
+		$report['ours']   = false !== strpos( $css, '.ghld-' );
+
+		return $report;
+	}
+
+	/**
 	 * The response headers that say whether something cached this.
 	 *
 	 * @param array|WP_Error $response Response from wp_remote_get().
@@ -189,6 +270,102 @@ class GHLD_Diagnostics {
 		}
 
 		return $found;
+	}
+
+	/**
+	 * Whether a visitor is getting the styling, said plainly.
+	 *
+	 * Separate from the caching verdict because a page can be live and unstyled,
+	 * or cached and styled, and collapsing the two into one headline hides
+	 * whichever came second.
+	 *
+	 * @param array $probe Result of probe().
+	 * @return array
+	 */
+	public static function css_verdict( array $probe ) {
+		// The freshly built response is the truth about this install; a cached
+		// one only says what was true when it was stored.
+		$side = ! empty( $probe['fresh']['css'] ) ? $probe['fresh'] : ( isset( $probe['cached'] ) ? $probe['cached'] : array() );
+		$css  = isset( $side['css'] ) ? $side['css'] : array();
+
+		if ( empty( $css ) ) {
+			return array();
+		}
+
+		if ( ! empty( $css['inline'] ) ) {
+			return array(
+				'state' => ! empty( $css['ours'] ) ? 'ok' : 'warning',
+				'title' => __( 'The styling is written into the page.', 'gohighlevel-integration' ),
+				'body'  => __( 'The stylesheet is inlined, so no separate file has to load for the directory to look right.', 'gohighlevel-integration' ),
+			);
+		}
+
+		if ( empty( $css['linked'] ) ) {
+			return array(
+				'state' => 'error',
+				'title' => __( 'The page never asks for the stylesheet.', 'gohighlevel-integration' ),
+				'body'  => __( 'There is no reference to the plugin\'s stylesheet anywhere in the HTML a visitor receives, which is why the directory has no styling for them. Something is removing it — usually a performance plugin that combines or minifies CSS, and which skips doing so while you are logged in, so you never see the result. Exclude gohighlevel-integration.css from that plugin\'s CSS optimisation, or turn on "Write the styling into the page" below, which puts the rules in the HTML where nothing can drop them.', 'gohighlevel-integration' ),
+			);
+		}
+
+		if ( ! empty( $css['error'] ) ) {
+			return array(
+				'state' => 'error',
+				'title' => __( 'The stylesheet could not be fetched.', 'gohighlevel-integration' ),
+				'body'  => sprintf(
+					/* translators: 1: URL, 2: error message. */
+					__( 'The page asks for %1$s, and requesting it failed: %2$s', 'gohighlevel-integration' ),
+					$css['url'],
+					$css['error']
+				),
+			);
+		}
+
+		if ( 200 !== (int) $css['status'] ) {
+			return array(
+				'state' => 'error',
+				'title' => sprintf(
+					/* translators: %d: HTTP status. */
+					__( 'The stylesheet returns %d.', 'gohighlevel-integration' ),
+					(int) $css['status']
+				),
+				'body'  => sprintf(
+					/* translators: %s: URL. */
+					__( 'The page asks for %s and that address does not serve the file, so no visitor can be styled. Check that the plugin\'s assets folder uploaded completely and that the file is readable; if an asset CDN or a rewritten asset host is in use, it is not serving this file.', 'gohighlevel-integration' ),
+					$css['url']
+				),
+			);
+		}
+
+		if ( empty( $css['ours'] ) ) {
+			return array(
+				'state' => 'error',
+				'title' => __( 'Something else answers at the stylesheet address.', 'gohighlevel-integration' ),
+				'body'  => sprintf(
+					/* translators: %s: URL. */
+					__( '%s returned a response, but not this plugin\'s CSS — so a rewrite rule, a CDN or a security layer is answering in its place. The directory cannot be styled until that address serves the real file, or until "Write the styling into the page" is turned on below.', 'gohighlevel-integration' ),
+					$css['url']
+				),
+			);
+		}
+
+		if ( 'late' === $css['route'] ) {
+			return array(
+				'state' => 'ok',
+				'title' => __( 'The styling loads, from the markup rather than the head.', 'gohighlevel-integration' ),
+				'body'  => __( 'The page had already sent its <head> by the time the directory rendered, so the plugin put the stylesheet reference beside the directory instead. That works, and is what keeps a builder-rendered or template-rendered page styled.', 'gohighlevel-integration' ),
+			);
+		}
+
+		return array(
+			'state' => 'ok',
+			'title' => __( 'The styling loads normally.', 'gohighlevel-integration' ),
+			'body'  => sprintf(
+				/* translators: %s: size in bytes. */
+				__( 'The stylesheet is requested from the head and served in full (%s bytes).', 'gohighlevel-integration' ),
+				number_format_i18n( (int) $css['bytes'] )
+			),
+		);
 	}
 
 	/**

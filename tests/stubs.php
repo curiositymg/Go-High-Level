@@ -837,6 +837,27 @@ function wp_enqueue_style( $handle ) {
 function wp_enqueue_script( $handle ) {
 }
 
+/**
+ * Whether a style has been printed. Tests set the state they are testing.
+ *
+ * @param string $handle Handle.
+ * @param string $list   Which list.
+ * @return bool
+ */
+function wp_style_is( $handle, $list = 'enqueued' ) {
+	return ! empty( $GLOBALS['ghld_test_style_done'] ) && 'done' === $list;
+}
+
+/**
+ * Whether an action has run.
+ *
+ * @param string $hook Hook name.
+ * @return int
+ */
+function did_action( $hook ) {
+	return ! empty( $GLOBALS['ghld_test_did_wp_head'] ) && 'wp_head' === $hook ? 1 : 0;
+}
+
 require_once GHLD_PATH . 'includes/class-ghld-settings.php';
 require_once GHLD_PATH . 'includes/class-ghld-client.php';
 require_once GHLD_PATH . 'includes/class-ghld-contact.php';

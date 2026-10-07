@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.1
+Stable tag: 1.17.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,26 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.2 =
+* The directory carries its own stylesheet when the page has not already loaded
+  one. Enqueuing a stylesheet asks for it; it does not promise one arrives. A
+  directory rendered by a builder, a widget or a template runs after <head> has
+  been sent, and a plugin that combines or minifies CSS can drop it on the way
+  out — and because logged-in administrators are normally exempt from CSS
+  optimisation, that is invisible to the one person checking. The stylesheet
+  reference now goes beside the directory in that case, inside the HTML, where
+  nothing downstream can lose it.
+* "Check the public page" now requests the stylesheet too, anonymously, and says
+  whether the page asks for it, whether that address serves it, and whether what
+  came back is really the plugin's CSS — a 200 from a rewrite rule or a security
+  layer is not.
+* The render stamp records how the styling reached the page: from the head,
+  beside the directory, or written in.
+* New "Write the styling into the page" option, for an install where the file is
+  on disk but its address will not serve it: an asset CDN that never fetched it,
+  a rewritten asset host, a permission that stops the webserver reading it.
+  Inlining sidesteps the URL completely.
 
 = 1.17.1 =
 * Answers "they still see the old page" with facts instead of guesswork. Every

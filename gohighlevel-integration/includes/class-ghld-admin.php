@@ -637,6 +637,18 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Write the styling into the page', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[inline_css]" value="1" <?php checked( ! empty( $settings['inline_css'] ) ); ?> />
+								<?php esc_html_e( 'Put the directory\'s CSS in the HTML instead of loading a file', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'For when the stylesheet never arrives: a performance plugin that combines or minifies CSS and drops it, an asset CDN that does not serve it, or a rewritten asset address. Because logged-in administrators are usually exempt from CSS optimisation, this is the failure where the directory looks right to you and unstyled to everybody else. Inlining puts the rules where nothing can remove them, at the cost of a little weight on the page. Use "Check the public page" above first — it says whether this is the problem.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Never cache the directory', 'gohighlevel-integration' ); ?></th>
 						<td>
 							<label>
@@ -1029,6 +1041,65 @@ class GHLD_Admin {
 	}
 
 	/**
+	 * How the stylesheet reached the page, in words.
+	 *
+	 * @param array $css The css section of one response.
+	 * @return string
+	 */
+	protected static function css_route_label( array $css ) {
+		$routes = array(
+			'head'   => __( 'from the head', 'gohighlevel-integration' ),
+			'late'   => __( 'beside the directory', 'gohighlevel-integration' ),
+			'inline' => __( 'written into the page', 'gohighlevel-integration' ),
+			'queued' => __( 'queued for the head', 'gohighlevel-integration' ),
+		);
+
+		if ( empty( $css ) ) {
+			return '—';
+		}
+
+		if ( empty( $css['linked'] ) && empty( $css['inline'] ) ) {
+			return __( 'not on the page at all', 'gohighlevel-integration' );
+		}
+
+		$route = isset( $css['route'] ) ? $css['route'] : '';
+
+		return isset( $routes[ $route ] ) ? $routes[ $route ] : __( 'unknown', 'gohighlevel-integration' );
+	}
+
+	/**
+	 * What came back when the stylesheet itself was requested.
+	 *
+	 * @param array $css The css section of one response.
+	 * @return string
+	 */
+	protected static function css_status_label( array $css ) {
+		if ( empty( $css ) ) {
+			return '—';
+		}
+
+		if ( ! empty( $css['inline'] ) ) {
+			return __( 'not needed — inlined', 'gohighlevel-integration' );
+		}
+
+		if ( ! empty( $css['error'] ) ) {
+			return $css['error'];
+		}
+
+		if ( empty( $css['url'] ) ) {
+			return __( 'never requested', 'gohighlevel-integration' );
+		}
+
+		return sprintf(
+			/* translators: 1: HTTP status, 2: bytes, 3: whether it is the plugin's CSS. */
+			__( '%1$d, %2$s bytes, %3$s', 'gohighlevel-integration' ),
+			(int) $css['status'],
+			number_format_i18n( (int) $css['bytes'] ),
+			empty( $css['ours'] ) ? __( 'not our CSS', 'gohighlevel-integration' ) : __( 'our CSS', 'gohighlevel-integration' )
+		);
+	}
+
+	/**
 	 * Print what the public-page check found.
 	 *
 	 * @return void
@@ -1057,6 +1128,18 @@ class GHLD_Admin {
 				<?php echo esc_html( $verdict['body'] ); ?>
 			</p>
 
+			<?php
+			$ghld_css = GHLD_Diagnostics::css_verdict( $probe );
+
+			if ( ! empty( $ghld_css ) ) :
+				$ghld_css_notice = 'ok' === $ghld_css['state'] ? 'notice-success' : ( 'error' === $ghld_css['state'] ? 'notice-error' : 'notice-warning' );
+				?>
+				<p class="notice <?php echo esc_attr( $ghld_css_notice ); ?>" style="padding:8px 12px">
+					<strong><?php echo esc_html( $ghld_css['title'] ); ?></strong><br />
+					<?php echo esc_html( $ghld_css['body'] ); ?>
+				</p>
+			<?php endif; ?>
+
 			<table class="widefat striped" style="margin-bottom:1em">
 				<thead>
 					<tr>
@@ -1072,6 +1155,8 @@ class GHLD_Admin {
 						'rendered'    => __( 'HTML built at (UTC)', 'gohighlevel-integration' ),
 						'version'     => __( 'Built by plugin version', 'gohighlevel-integration' ),
 						'stylesheet'  => __( 'Stylesheet it asks for', 'gohighlevel-integration' ),
+						'css_route'   => __( 'How the styling got there', 'gohighlevel-integration' ),
+						'css_status'  => __( 'Stylesheet request', 'gohighlevel-integration' ),
 						'synced'      => __( 'Last sync it knew about', 'gohighlevel-integration' ),
 						'cards'       => __( 'Cards on the page', 'gohighlevel-integration' ),
 						'specialties' => __( 'Specialty lines on the page', 'gohighlevel-integration' ),
@@ -1188,6 +1273,10 @@ class GHLD_Admin {
 				return (string) (int) $side['specialties'];
 			case 'status':
 				return (string) (int) $side['status'];
+			case 'css_route':
+				return self::css_route_label( isset( $side['css'] ) ? $side['css'] : array() );
+			case 'css_status':
+				return self::css_status_label( isset( $side['css'] ) ? $side['css'] : array() );
 		}
 
 		return '—';

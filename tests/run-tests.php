@@ -1972,6 +1972,85 @@ ghld_same( '12', isset( $read['post'] ) ? $read['post'] : '', 'naming the page i
 ghld_ok( ! empty( $read['rendered'] ) && false === strpos( $read['rendered'], ' ' ), 'with a timestamp that survives being split on whitespace' );
 ghld_same( GHLD_VERSION, isset( $read['v'] ) ? $read['v'] : '', 'and the version that built it' );
 
+/* The stylesheet has to actually reach the page, which enqueuing alone does not
+ * promise: a directory rendered after <head> has been sent, or a page whose CSS
+ * an optimiser rewrote, loses it — and loses it only for the visitors who are
+ * not logged in. */
+
+$GLOBALS['ghld_test_did_wp_head'] = true;
+$GLOBALS['ghld_test_style_done']  = true;
+$styled = GHLD_Shortcode::render( array() );
+ghld_ok( false === strpos( $styled, 'ghld-css-late' ), 'a page that already printed the stylesheet is left alone' );
+ghld_same( 'head', GHLD_Diagnostics::marker( $styled )['css'], 'and says so in the stamp' );
+
+$GLOBALS['ghld_test_style_done'] = false;
+$rescued = GHLD_Shortcode::render( array() );
+ghld_ok( false !== strpos( $rescued, 'ghld-css-late' ), 'a page that did not gets the stylesheet beside the directory instead' );
+ghld_ok( false !== strpos( $rescued, 'gohighlevel-integration.css?ver=' . GHLD_VERSION ), 'at this version, so an old cached copy is not reused' );
+ghld_same( 'late', GHLD_Diagnostics::marker( $rescued )['css'], 'and the stamp records which way it got there' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'inline_css' => 1 ) ) );
+$inlined = GHLD_Shortcode::render( array() );
+ghld_ok( false !== strpos( $inlined, '<style id="ghld-css-inline">' ), 'asked to, it writes the CSS into the page instead of linking it' );
+ghld_ok( false !== strpos( $inlined, '.ghld-' ), 'with the real rules in it' );
+ghld_ok( false === strpos( $inlined, 'ghld-css-late' ), 'and then does not also link the file' );
+ghld_same( 'inline', GHLD_Diagnostics::marker( $inlined )['css'], 'which the stamp reports too' );
+
+$GLOBALS['ghld_test_did_wp_head'] = false;
+update_option( 'ghld_settings', $defaults );
+$early = GHLD_Shortcode::render( array() );
+ghld_ok( false === strpos( $early, 'ghld-css-late' ), 'before the head is sent, the normal enqueue is left to do its job' );
+ghld_same( 'queued', GHLD_Diagnostics::marker( $early )['css'], 'and the stamp says it is still queued' );
+
+$GLOBALS['ghld_test_did_wp_head'] = true;
+$GLOBALS['ghld_test_style_done']  = true;
+
+// The probe says whether a visitor's styling actually loaded, which is a
+// different question from whether the page was cached.
+$ghld_page = '<!-- ghld v=1.17.2 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T16:40:00Z css=head -->'
+	. '<link rel="stylesheet" href="https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.17.2" />';
+
+ghld_test_http(
+	'https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.17.2',
+	array( 'status' => 200, 'body' => '.ghld-card{border:1px solid #ddd}', 'headers' => array() )
+);
+
+$css = GHLD_Diagnostics::css( $ghld_page, 'https://example.test/physician-directory/' );
+ghld_ok( $css['linked'], 'the probe sees the page asking for the stylesheet' );
+ghld_same( 200, $css['status'], 'fetches that address itself, with no login' );
+ghld_ok( $css['ours'], 'and confirms the response really is the plugin\'s CSS' );
+ghld_same( 'ok', GHLD_Diagnostics::css_verdict( array( 'fresh' => array( 'css' => $css ) ) )['state'], 'so the styling is reported as working' );
+
+// A stylesheet stripped out of the HTML: the symptom being reported.
+$ghld_stripped = '<!-- ghld v=1.17.2 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T16:40:00Z css=head -->'
+	. '<link rel="stylesheet" href="https://example.test/wp-content/cache/combined-9f2.css" />';
+$css = GHLD_Diagnostics::css( $ghld_stripped, 'https://example.test/physician-directory/' );
+ghld_ok( ! $css['linked'], 'a page whose CSS was combined away is seen as not asking for it' );
+$ghld_said = GHLD_Diagnostics::css_verdict( array( 'fresh' => array( 'css' => $css ) ) );
+ghld_same( 'error', $ghld_said['state'], 'which is reported as a fault, not a pass' );
+ghld_ok( false !== strpos( $ghld_said['body'], 'combines' ), 'and names the usual cause' );
+
+// Linked, but the address does not serve it.
+$ghld_missing = str_replace( 'gohighlevel-integration.css?ver=1.17.2', 'gohighlevel-integration.css?ver=9.9.9', $ghld_page );
+ghld_test_http(
+	'https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=9.9.9',
+	array( 'status' => 404, 'body' => 'Not found', 'headers' => array() )
+);
+$css = GHLD_Diagnostics::css( $ghld_missing, 'https://example.test/physician-directory/' );
+ghld_same( 404, $css['status'], 'a stylesheet address that does not serve is caught' );
+ghld_ok( ! $css['ours'], 'and not mistaken for the real file' );
+ghld_same( 'error', GHLD_Diagnostics::css_verdict( array( 'fresh' => array( 'css' => $css ) ) )['state'], 'and reported as a fault' );
+
+// A 200 from something that is not the stylesheet at all.
+ghld_test_http(
+	'https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=9.9.9',
+	array( 'status' => 200, 'body' => '<html><body>Access denied</body></html>', 'headers' => array() )
+);
+$css = GHLD_Diagnostics::css( $ghld_missing, 'https://example.test/physician-directory/' );
+ghld_ok( ! $css['ours'], 'a 200 from something that is not the CSS does not count as working' );
+$ghld_said = GHLD_Diagnostics::css_verdict( array( 'fresh' => array( 'css' => $css ) ) );
+ghld_same( 'error', $ghld_said['state'], 'and is reported as something else answering' );
+
 ghld_same(
 	'1.16.1',
 	GHLD_Diagnostics::stylesheet( '<link rel="stylesheet" href="https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.16.1" />' ),
