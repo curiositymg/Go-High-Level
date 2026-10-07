@@ -1986,8 +1986,8 @@ ghld_ok(
 	'and a copy already on this site does not'
 );
 ghld_ok(
-	! empty( GHLD_Settings::defaults()['cache_photos'] ),
-	'copying headshots here is on by default, because pointing at the API address only ever works for whoever is signed in'
+	empty( GHLD_Settings::defaults()['cache_photos'] ),
+	'copying headshots here stays off by default: GoHighLevel does serve them, and a copy on this domain would sit behind a staging password gate that an external image escapes'
 );
 
 // The probe requests the headshots with no cookies, which is the only request
@@ -2020,6 +2020,41 @@ ghld_same( 0, $ghld_shots['external'], 'and is not pointing at GoHighLevel any m
 ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'photos' => $ghld_shots ) ) )['state'], 'so the headshots are reported as working' );
 
 ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
+
+/* A server-level password gate — a staging or coming-soon lock — answers before
+ * WordPress runs, so every file on the domain is refused to anyone without the
+ * credentials while images hosted elsewhere load normally. That is a styled page
+ * for the person holding the password and an unstyled one with working
+ * photographs for everybody else, and it is not a cache. */
+
+$ghld_gated = '<!-- ghld v=1.17.4 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T17:30:00Z css=head -->'
+	. '<link rel="stylesheet" href="https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.17.4" />';
+
+ghld_test_http(
+	'https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.17.4',
+	array( 'status' => 401, 'body' => 'Authorization Required', 'headers' => array( 'www-authenticate' => 'Basic realm="Restricted"' ) )
+);
+
+$css = GHLD_Diagnostics::css( $ghld_gated, 'https://example.test/physician-directory/' );
+ghld_same( 401, $css['status'], 'a stylesheet refused by a password gate is seen as refused' );
+$ghld_said = GHLD_Diagnostics::css_verdict( array( 'fresh' => array( 'css' => $css ) ) );
+ghld_same( 'error', $ghld_said['state'], 'and reported as a fault' );
+ghld_ok( false !== strpos( $ghld_said['title'], 'password gate' ), 'named as the gate rather than a missing file' );
+ghld_ok( false !== strpos( $ghld_said['body'], 'Write the styling into the page' ), 'with the setting that works around it' );
+
+$ghld_said = GHLD_Diagnostics::verdict(
+	array(
+		'cached' => array( 'status' => 401, 'marker' => array(), 'cards' => 0, 'headers' => array( 'www-authenticate' => 'Basic realm="Restricted"' ) ),
+		'fresh'  => array( 'status' => 401, 'marker' => array(), 'cards' => 0, 'headers' => array() ),
+	)
+);
+ghld_ok( false !== strpos( $ghld_said['title'], 'password gate' ), 'a gated site is reported as gated, not as the wrong page' );
+ghld_ok( false !== strpos( $ghld_said['body'], 'not a cache' ), 'and says plainly that this is not a caching problem' );
+
+ghld_ok(
+	in_array( 'www-authenticate', array_keys( GHLD_Diagnostics::cache_headers( array( 'headers' => array( 'www-authenticate' => 'Basic realm="x"' ) ) ) ), true ),
+	'the gate\'s own header is kept in the report'
+);
 
 /* The stylesheet has to actually reach the page, which enqueuing alone does not
  * promise: a directory rendered after <head> has been sent, or a page whose CSS

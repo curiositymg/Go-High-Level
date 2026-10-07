@@ -33,7 +33,7 @@ class GHLD_Settings {
 			'no_cache_directory' => 0,
 			'inline_css'    => 0,
 			'deep_sync'     => 1,
-			'cache_photos'  => 1,
+			'cache_photos'  => 0,
 			'include_tags'  => 'member - physician',
 			'exclude_tags'  => '',
 			'photo_field'   => 'cf:member_profile_photo',

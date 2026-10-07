@@ -3,7 +3,7 @@
  * Plugin Name:       GoHighLevel Integration
  * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
- * Version:           1.17.3
+ * Version:           1.17.4
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Curiosity Marketing Group
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GHLD_VERSION', '1.17.3' );
+define( 'GHLD_VERSION', '1.17.4' );
 define( 'GHLD_FILE', __FILE__ );
 define( 'GHLD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GHLD_URL', plugin_dir_url( __FILE__ ) );
@@ -46,7 +46,7 @@ require_once GHLD_PATH . 'includes/class-ghld-admin.php';
 function ghld_migrate() {
 	$applied = (int) get_option( 'ghld_migration', 0 );
 
-	if ( $applied >= 4 ) {
+	if ( $applied >= 5 ) {
 		return;
 	}
 
@@ -64,17 +64,18 @@ function ghld_migrate() {
 	// rebuilds every contact with the current code.
 	GHLD_Repository::flush();
 
-	if ( $applied < 4 ) {
-		// A headshot in a file-upload field is stored as a documents/download
-		// URL, which is an API endpoint rather than a public asset: it answers a
-		// request carrying the API token and refuses one from a visitor's
-		// browser. Pointing a card straight at it only appears to work while the
-		// person looking is signed in to GoHighLevel in the same browser —
-		// everybody else gets a failed image. So local copies are not optional.
-		GHLD_Settings::update( array( 'cache_photos' => 1 ) );
+	if ( 4 === $applied ) {
+		// Undo migration 4, which turned local headshot copies on for everyone
+		// on the strength of a conclusion that turned out to be wrong: those
+		// documents/download URLs do serve a visitor's browser. Worse, a local
+		// copy is served from this domain, so on a site behind a staging
+		// password gate it would put the headshots behind that gate — breaking
+		// the one part that was working. The setting and its button stay; only
+		// the unasked-for default goes back.
+		GHLD_Settings::update( array( 'cache_photos' => 0 ) );
 	}
 
-	update_option( 'ghld_migration', 4 );
+	update_option( 'ghld_migration', 5 );
 }
 
 /**

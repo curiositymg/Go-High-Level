@@ -648,7 +648,7 @@ class GHLD_Admin {
 								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[cache_photos]" value="1" <?php checked( ! empty( $settings['cache_photos'] ) ); ?> />
 								<?php esc_html_e( 'Copy headshots into this site\'s uploads folder', 'gohighlevel-integration' ); ?>
 							</label>
-							<p class="description"><?php esc_html_e( 'Leave this on. A headshot in a file-upload field is stored as a GoHighLevel documents/download address, which is an API endpoint rather than a public file: it answers a request carrying your API token and refuses one from a visitor\'s browser, which then shows the initials circle instead. Opening such an address yourself appears to work only because your browser is signed in to GoHighLevel. With this on, each headshot is copied here once and the cards point at the copy, so everybody sees it. Sixty are copied per sync; "Download every headshot now" above does the rest immediately.', 'gohighlevel-integration' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Off by default: GoHighLevel does serve those file URLs to a visitor\'s browser, so the cards can point straight at them. Turn it on to stop depending on that — a copy on this site cannot stop working because an address changed. Note the trade-off while a site is behind a staging password: a copy here is served from this domain and therefore sits behind that gate, whereas a headshot on GoHighLevel does not, so mirroring can hide photographs that currently show. Sixty are copied per sync; "Download every headshot now" above does the rest immediately.', 'gohighlevel-integration' ); ?></p>
 						</td>
 					</tr>
 					<tr>

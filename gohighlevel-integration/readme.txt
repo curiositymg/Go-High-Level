@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.3
+Stable tag: 1.17.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,22 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.4 =
+* Recognises a site behind a server-level password — a staging or coming-soon
+  gate — which answers before WordPress runs and refuses every file on the domain
+  to anyone without the credentials, while images hosted elsewhere load normally.
+  That is a styled page for whoever holds the password and an unstyled page with
+  working photographs for everybody else, and no cache is involved. "Check the
+  public page" now says so instead of reporting an unreachable page, and points
+  at "Write the styling into the page", which carries the rules inside HTML that
+  has already passed the gate.
+* Reverts 1.17.3's default. Those GoHighLevel file URLs do serve a visitor's
+  browser, so copying headshots here is optional again, and an install switched
+  over by 1.17.3 is switched back. The setting and the "Download every headshot
+  now" button stay. On a site behind a staging password the trade-off runs the
+  other way: a copy here sits behind the gate, while a headshot on GoHighLevel
+  does not.
 
 = 1.17.3 =
 * Headshots now load for everybody, not only for whoever is signed in to

@@ -387,6 +387,7 @@ class GHLD_Diagnostics {
 			'age',
 			'cache-control',
 			'cf-cache-status',
+			'www-authenticate',
 			'x-litespeed-cache',
 			'x-rocket-nginx-serving',
 			'x-nitro-cache',
@@ -464,6 +465,19 @@ class GHLD_Diagnostics {
 			);
 		}
 
+		if ( 401 === (int) $css['status'] || 403 === (int) $css['status'] ) {
+			return array(
+				'state' => 'error',
+				'title' => __( 'The stylesheet is behind the site\'s password gate.', 'gohighlevel-integration' ),
+				'body'  => sprintf(
+					/* translators: 1: URL, 2: HTTP status. */
+					__( '%1$s returned %2$d, which is the server asking for a password rather than WordPress answering. A staging or coming-soon gate sits in front of the whole site, so every file on this domain needs those credentials — while an image hosted elsewhere, such as a headshot on GoHighLevel, loads perfectly. That is why the directory can show photographs and no styling at the same time. Turn on "Write the styling into the page" below: the rules then travel inside HTML that has already passed the gate, so there is no second request to refuse. Lifting the gate fixes it too, as does going live.', 'gohighlevel-integration' ),
+					$css['url'],
+					(int) $css['status']
+				),
+			);
+		}
+
 		if ( 200 !== (int) $css['status'] ) {
 			return array(
 				'state' => 'error',
@@ -529,6 +543,20 @@ class GHLD_Diagnostics {
 					/* translators: %s: error message. */
 					__( 'WordPress could not request its own page: %s. That blocks this check, not the directory itself.', 'gohighlevel-integration' ),
 					$cached['error']
+				),
+			);
+		}
+
+		$gated = isset( $cached['status'] ) && in_array( (int) $cached['status'], array( 401, 403 ), true );
+
+		if ( $gated ) {
+			return array(
+				'state' => 'warning',
+				'title' => __( 'The whole site is behind a password gate.', 'gohighlevel-integration' ),
+				'body'  => sprintf(
+					/* translators: %d: HTTP status. */
+					__( 'The page answered %d — the server asking for a password before WordPress runs, which is how a staging or coming-soon gate behaves. This check cannot see past it, and neither can anything else that does not hold those credentials: stylesheets, scripts and local images on this domain are all refused the same way, while files hosted elsewhere still load. If the directory looks unstyled to other people while its photographs appear, that is this, not a cache. Nothing about the caching below can be read while the gate is up.', 'gohighlevel-integration' ),
+					(int) $cached['status']
 				),
 			);
 		}
