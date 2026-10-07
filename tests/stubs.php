@@ -418,7 +418,34 @@ function home_url( $path = '' ) {
  * @return string
  */
 function add_query_arg() {
-	return '/directory/';
+	$args = func_get_args();
+
+	// The no-argument and array forms stand in for "the current request",
+	// which the shortcode only uses to find the path it is on.
+	if ( empty( $args ) || is_array( $args[0] ) ) {
+		$url = isset( $args[1] ) ? (string) $args[1] : '';
+
+		if ( '' === $url ) {
+			return '/directory/';
+		}
+
+		$query = array();
+		foreach ( (array) $args[0] as $key => $value ) {
+			$query[] = rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+		}
+
+		return empty( $query ) ? $url : $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . implode( '&', $query );
+	}
+
+	// add_query_arg( $key, $value, $url ).
+	if ( ! isset( $args[2] ) ) {
+		return '/directory/';
+	}
+
+	$url = (string) $args[2];
+
+	return $url . ( false === strpos( $url, '?' ) ? '?' : '&' )
+		. rawurlencode( (string) $args[0] ) . '=' . rawurlencode( (string) $args[1] );
 }
 
 /**
@@ -678,6 +705,138 @@ function is_admin() {
 	return false;
 }
 
+/**
+ * Canned HTTP responses, keyed by the URL the code asks for.
+ *
+ * A probe exists to describe what came back over the wire, so the only way to
+ * test it is to decide what came back.
+ *
+ * @var array
+ */
+$GLOBALS['ghld_test_http'] = array();
+
+/**
+ * Queue a response for a URL.
+ *
+ * @param string $url      URL that will be requested.
+ * @param array  $response status, body, headers.
+ * @return void
+ */
+function ghld_test_http( $url, array $response ) {
+	$GLOBALS['ghld_test_http'][ $url ] = $response;
+}
+
+/**
+ * Hand back whatever was queued, matching a cache-buster loosely.
+ *
+ * @param string $url  URL.
+ * @param array  $args Unused.
+ * @return array|WP_Error
+ */
+function wp_remote_get( $url, $args = array() ) {
+	if ( isset( $GLOBALS['ghld_test_http'][ $url ] ) ) {
+		return $GLOBALS['ghld_test_http'][ $url ];
+	}
+
+	// The probe appends a unique argument it cannot know in advance, so a
+	// queued entry matches any URL that starts with it.
+	foreach ( $GLOBALS['ghld_test_http'] as $queued => $response ) {
+		if ( false !== strpos( $url, $queued . '?ghld_cache_check=' ) ) {
+			return $response;
+		}
+	}
+
+	return new WP_Error( 'ghld_test_no_response', 'Nothing queued for ' . $url );
+}
+
+/**
+ * Body of a canned response.
+ *
+ * @param array|WP_Error $response Response.
+ * @return string
+ */
+function wp_remote_retrieve_body( $response ) {
+	return isset( $response['body'] ) ? (string) $response['body'] : '';
+}
+
+/**
+ * Status of a canned response.
+ *
+ * @param array|WP_Error $response Response.
+ * @return int
+ */
+function wp_remote_retrieve_response_code( $response ) {
+	return isset( $response['status'] ) ? (int) $response['status'] : 0;
+}
+
+/**
+ * Headers of a canned response.
+ *
+ * @param array|WP_Error $response Response.
+ * @return array
+ */
+function wp_remote_retrieve_headers( $response ) {
+	return isset( $response['headers'] ) ? (array) $response['headers'] : array();
+}
+
+/**
+ * URL gate, standing in for WordPress's own.
+ *
+ * @param string $url URL.
+ * @return string|false
+ */
+function wp_http_validate_url( $url ) {
+	return preg_match( '#^https?://[^/\s]+#i', (string) $url ) ? $url : false;
+}
+
+/**
+ * Rough elapsed time.
+ *
+ * @param int $from Timestamp.
+ * @param int $to   Timestamp.
+ * @return string
+ */
+function human_time_diff( $from, $to = 0 ) {
+	$to = $to ? $to : time();
+
+	return (string) max( 1, (int) round( abs( $to - $from ) / 60 ) ) . ' mins';
+}
+
+/**
+ * No-op header sender.
+ *
+ * @return void
+ */
+function nocache_headers() {
+}
+
+/**
+ * The post being rendered.
+ *
+ * @return int
+ */
+function get_the_ID() {
+	return isset( $GLOBALS['ghld_test_post_id'] ) ? (int) $GLOBALS['ghld_test_post_id'] : 0;
+}
+
+/**
+ * Asset enqueue, which the harness has no pipeline for.
+ *
+ * @param string $handle Handle.
+ * @return void
+ */
+function wp_enqueue_style( $handle ) {
+}
+
+/**
+ * Asset enqueue.
+ *
+ * @param string $handle Handle.
+ * @return void
+ */
+function wp_enqueue_script( $handle ) {
+}
+
 require_once GHLD_PATH . 'includes/class-ghld-settings.php';
 require_once GHLD_PATH . 'includes/class-ghld-client.php';
 require_once GHLD_PATH . 'includes/class-ghld-contact.php';
@@ -687,3 +846,4 @@ require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
 require_once GHLD_PATH . 'includes/class-ghld-seo.php';
 require_once GHLD_PATH . 'includes/class-ghld-purge.php';
+require_once GHLD_PATH . 'includes/class-ghld-diagnostics.php';

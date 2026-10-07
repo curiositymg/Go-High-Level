@@ -1933,6 +1933,126 @@ ghld_ok(
 );
 
 /* -------------------------------------------------------------------------
+ * Telling a cached page from a live one
+ * ---------------------------------------------------------------------- */
+
+update_option( 'ghld_settings', $defaults );
+
+// A purge says what it was actually able to reach, and nothing on a bare test
+// install exposes a page cache — which is exactly the report that matters when
+// somebody says the old page is still showing.
+ghld_same( array(), GHLD_Purge::flush( 'manual' ), 'a purge with no cache present reaches nothing' );
+
+$last = GHLD_Purge::last();
+ghld_same( 'manual', isset( $last['reason'] ) ? $last['reason'] : '', 'and records why it ran' );
+ghld_ok( ! empty( $last['at'] ), 'and when' );
+ghld_same( array(), isset( $last['ran'] ) ? $last['ran'] : null, 'and that it cleared nothing, rather than implying success' );
+
+foreach ( GHLD_Purge::targets() as $label => $target ) {
+	ghld_ok( isset( $target['call'], $target['available'] ), 'cache target "' . $label . '" is described for the settings screen' );
+}
+
+// The render stamp is what dates a page from outside.
+$stamp = GHLD_Diagnostics::marker( '<!-- ghld v=1.17.1 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T15:30:01Z -->' );
+ghld_same( '1.17.1', isset( $stamp['v'] ) ? $stamp['v'] : '', 'the render stamp gives up the version that built the page' );
+ghld_same( '2026-10-07T15:30:01Z', $stamp['rendered'], 'and when that HTML was built' );
+ghld_same( '305', $stamp['contacts'], 'and how many contacts it knew about' );
+ghld_same( array(), GHLD_Diagnostics::marker( '<html><body>no directory here</body></html>' ), 'a page without the directory has no stamp' );
+
+// The whole point of the stamp is that the probe can read what the render
+// wrote, so the two halves are checked against each other rather than against a
+// fixture of the format.
+$GLOBALS['ghld_test_post_id'] = 12;
+$rendered = GHLD_Shortcode::render( array() );
+$read     = GHLD_Diagnostics::marker( $rendered );
+
+ghld_ok( 0 === strpos( $rendered, '<!-- ghld ' ), 'a rendered directory carries a render stamp' );
+ghld_same( 'directory', isset( $read['view'] ) ? $read['view'] : '', 'which the probe reads back off the real output' );
+ghld_same( '12', isset( $read['post'] ) ? $read['post'] : '', 'naming the page it came from, so a second stale copy of the page is visible' );
+ghld_ok( ! empty( $read['rendered'] ) && false === strpos( $read['rendered'], ' ' ), 'with a timestamp that survives being split on whitespace' );
+ghld_same( GHLD_VERSION, isset( $read['v'] ) ? $read['v'] : '', 'and the version that built it' );
+
+ghld_same(
+	'1.16.1',
+	GHLD_Diagnostics::stylesheet( '<link rel="stylesheet" href="https://example.test/wp-content/plugins/gohighlevel-integration/assets/css/gohighlevel-integration.css?ver=1.16.1" />' ),
+	'stale HTML is dated a second way, by the stylesheet version it asks for'
+);
+ghld_same( '', GHLD_Diagnostics::stylesheet( '<link rel="stylesheet" href="/theme.css" />' ), 'and a page not loading it at all says so'
+);
+
+$headers = GHLD_Diagnostics::cache_headers(
+	array(
+		'headers' => array(
+			'x-cache'       => 'HIT: 3',
+			'age'           => '86400',
+			'content-type'  => 'text/html',
+			'cache-control' => 'max-age=600',
+		),
+	)
+);
+ghld_same( 'HIT: 3', $headers['x-cache'], 'the cache headers are picked out of the response' );
+ghld_same( '86400', $headers['age'], 'including how long the copy has been held' );
+ghld_ok( ! isset( $headers['content-type'] ), 'and nothing that says nothing about caching' );
+
+$ghld_old = '<!-- ghld v=1.16.1 view=directory post=12 contacts=305 synced=2026-10-01T09:00Z rendered=2026-10-01T09:04:11Z -->'
+	. str_repeat( '<li class="ghld-grid-item"><h3>Ayman Aboulela</h3></li>', 24 );
+$ghld_new = '<!-- ghld v=1.17.1 view=directory post=12 contacts=305 synced=2026-10-07T14:02Z rendered=2026-10-07T15:30:01Z -->'
+	. str_repeat( '<li class="ghld-grid-item"><h3>Ayman Aboulela</h3><p class="ghld-specialty">Specialty: Internal Medicine</p></li>', 24 );
+
+ghld_test_http(
+	'https://example.test/physician-directory/',
+	array(
+		'status'  => 200,
+		'body'    => $ghld_old,
+		'headers' => array( 'x-cache' => 'HIT', 'age' => '91000' ),
+	)
+);
+
+$probe = GHLD_Diagnostics::probe( 'https://example.test/physician-directory/' );
+
+// Both URLs resolve to the queued response here, which is the "no cache in
+// front" case: identical stamps.
+ghld_same( 24, $probe['cached']['cards'], 'the probe counts the cards a visitor actually receives' );
+ghld_same( 0, $probe['cached']['specialties'], 'and notices when the specialty lines are missing from them' );
+ghld_same( 24, $probe['cached']['cards'], 'from the anonymous response, not the admin view' );
+
+$verdict = GHLD_Diagnostics::verdict( $probe );
+ghld_same( 'ok', $verdict['state'], 'two identical responses mean nothing is caching the page' );
+
+// Now the response that proves a cache: the plain URL is old, the unique one is
+// built fresh.
+$probe['fresh'] = array(
+	'status'      => 200,
+	'bytes'       => strlen( $ghld_new ),
+	'marker'      => GHLD_Diagnostics::marker( $ghld_new ),
+	'cards'       => 24,
+	'specialties' => 24,
+	'stylesheet'  => '1.17.1',
+	'headers'     => array(),
+);
+
+$verdict = GHLD_Diagnostics::verdict( $probe );
+ghld_same( 'warning', $verdict['state'], 'an older plain response and a fresh unique one means a cache is in front' );
+ghld_ok( false !== strpos( $verdict['body'], '1.16.1' ), 'and the verdict names the stale version' );
+ghld_ok( false !== strpos( $verdict['body'], '1.17.1' ), 'alongside the current one' );
+
+$verdict = GHLD_Diagnostics::verdict(
+	array(
+		'cached' => array( 'error' => 'Could not resolve host' ),
+		'fresh'  => array( 'error' => 'Could not resolve host' ),
+	)
+);
+ghld_same( 'error', $verdict['state'], 'a request that fails is reported as a failed check, not a healthy page' );
+
+$verdict = GHLD_Diagnostics::verdict(
+	array(
+		'cached' => array( 'status' => 200, 'marker' => array(), 'cards' => 0 ),
+		'fresh'  => array( 'status' => 200, 'marker' => array(), 'cards' => 0 ),
+	)
+);
+ghld_same( 'error', $verdict['state'], 'a page with no stamp at all is the wrong page, and says so' );
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

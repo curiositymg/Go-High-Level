@@ -30,6 +30,7 @@ class GHLD_Settings {
 			'location_id'   => '',
 			'cache_minutes' => 60,
 			'purge_cache'   => 1,
+			'no_cache_directory' => 0,
 			'deep_sync'     => 1,
 			'cache_photos'  => 0,
 			'include_tags'  => 'member - physician',
@@ -215,6 +216,7 @@ class GHLD_Settings {
 		$clean['location_id']   = isset( $input['location_id'] ) ? sanitize_text_field( trim( $input['location_id'] ) ) : '';
 		$clean['cache_minutes'] = isset( $input['cache_minutes'] ) ? max( 5, (int) $input['cache_minutes'] ) : 60;
 		$clean['purge_cache']   = empty( $input['purge_cache'] ) ? 0 : 1;
+		$clean['no_cache_directory'] = empty( $input['no_cache_directory'] ) ? 0 : 1;
 		$clean['include_tags']  = isset( $input['include_tags'] ) ? sanitize_text_field( $input['include_tags'] ) : '';
 		$clean['exclude_tags']  = isset( $input['exclude_tags'] ) ? sanitize_text_field( $input['exclude_tags'] ) : '';
 		$clean['photo_field']   = isset( $input['photo_field'] ) ? sanitize_text_field( $input['photo_field'] ) : '';

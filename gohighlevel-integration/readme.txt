@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.0
+Stable tag: 1.17.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,27 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.1 =
+* Answers "they still see the old page" with facts instead of guesswork. Every
+  directory and profile page now carries a render stamp — an HTML comment giving
+  the plugin version, the page it came from and the moment that HTML was built —
+  so a page source says whether a visitor has the live page or a copy a cache
+  kept.
+* A "Check the public page" button requests the page with no login, which is
+  what everybody else gets, and reports the render stamp, the cache headers, the
+  stylesheet version and how many cards and specialty lines actually arrived.
+  You are the one visitor a page cache treats differently, so this is the only
+  way to see the public page from the admin screen. Point it at another address
+  to check whether the people reporting a problem are on a different site.
+* A purge now records which caches it was able to reach, and the report says so.
+  A purge that reaches nothing is the answer: the caching is somewhere PHP
+  cannot clear, and re-purging will not help.
+* More caches cleared: Breeze, Hummingbird, Autoptimize, Comet Cache, Swift
+  Performance, NitroPack and Pantheon, alongside the ones already handled.
+* New "Never cache the directory" option for a cache that cannot be purged. It
+  asks that no copy of the page be stored, so it is always built fresh. Off by
+  default, because it costs the page its cache hit.
 
 = 1.17.0 =
 * The public directory refreshes itself. Saving settings, a sync that changes

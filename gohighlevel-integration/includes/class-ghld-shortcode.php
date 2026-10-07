@@ -53,8 +53,7 @@ class GHLD_Shortcode {
 			)
 		);
 
-		$post = get_post();
-		if ( $post instanceof WP_Post && has_shortcode( (string) $post->post_content, self::TAG ) ) {
+		if ( self::page_has_directory() ) {
 			self::enqueue_assets();
 		}
 	}
@@ -87,13 +86,16 @@ class GHLD_Shortcode {
 			$contact = GHLD_Repository::find_by_slug( $requested, $scope );
 
 			if ( null !== $contact ) {
-				return GHLD_Template::get(
-					'contact-profile',
-					array(
-						'contact' => $contact,
-						'scope'   => $scope,
-						'back'    => self::directory_url(),
-					)
+				return self::mark(
+					GHLD_Template::get(
+						'contact-profile',
+						array(
+							'contact' => $contact,
+							'scope'   => $scope,
+							'back'    => self::directory_url(),
+						)
+					),
+					'profile'
 				);
 			}
 		}
@@ -104,20 +106,75 @@ class GHLD_Shortcode {
 
 		$rendered = self::render_results( $scope, $request );
 
-		return GHLD_Template::get(
-			'directory',
-			array(
-				'scope'      => $scope,
-				'request'    => $request,
-				'instance'   => $instance,
-				'results'    => $rendered['results'],
-				'pagination' => $rendered['pagination'],
-				'facets'     => $rendered['facets'],
-				'total'      => $rendered['total'],
-				'summary'    => $rendered['summary'],
-				'dom_id'     => 'ghld-' . $instance,
-			)
+		return self::mark(
+			GHLD_Template::get(
+				'directory',
+				array(
+					'scope'      => $scope,
+					'request'    => $request,
+					'instance'   => $instance,
+					'results'    => $rendered['results'],
+					'pagination' => $rendered['pagination'],
+					'facets'     => $rendered['facets'],
+					'total'      => $rendered['total'],
+					'summary'    => $rendered['summary'],
+					'dom_id'     => 'ghld-' . $instance,
+				)
+			),
+			'directory'
 		);
+	}
+
+	/**
+	 * Stamp the output with what produced it.
+	 *
+	 * An HTML comment, so it costs a visitor nothing and shows a browser
+	 * nothing — but it answers the one question that cannot otherwise be
+	 * answered from outside: is the page somebody is looking at the page this
+	 * install would render right now, or a copy a cache kept? "rendered" is the
+	 * moment this HTML was built. If it reads minutes ago, the visitor has the
+	 * live page and the problem is in the data. If it reads days ago, they have
+	 * a cached copy and the data is irrelevant.
+	 *
+	 * @param string $html Rendered markup.
+	 * @param string $kind directory or profile.
+	 * @return string
+	 */
+	protected static function mark( $html, $kind ) {
+		$state = GHLD_Repository::state();
+		$synced = isset( $state['synced_at'] ) ? (int) $state['synced_at'] : 0;
+
+		$facts = array(
+			'v'        => GHLD_VERSION,
+			'view'     => $kind,
+			'post'     => (string) get_the_ID(),
+			'contacts' => isset( $state['count'] ) ? (string) (int) $state['count'] : '0',
+			// ISO 8601, so no value contains a space: the stamp is read back by
+			// splitting on whitespace, and a space inside a value would cut it
+			// in half.
+			'synced'   => $synced ? gmdate( 'Y-m-d\\TH:i\\Z', $synced ) : 'never',
+			'rendered' => gmdate( 'Y-m-d\\TH:i:s\\Z' ),
+		);
+
+		$pairs = array();
+		foreach ( $facts as $key => $value ) {
+			// Nothing here can close the comment early, but a value that could
+			// would break the page rather than the comment.
+			$pairs[] = $key . '=' . str_replace( array( '--', '>', ' ' ), '', (string) $value );
+		}
+
+		return "<!-- ghld " . implode( ' ', $pairs ) . " -->\n" . $html;
+	}
+
+	/**
+	 * Whether the page being served shows the directory.
+	 *
+	 * @return bool
+	 */
+	public static function page_has_directory() {
+		$post = get_post();
+
+		return ( $post instanceof WP_Post ) && has_shortcode( (string) $post->post_content, self::TAG );
 	}
 
 	/**

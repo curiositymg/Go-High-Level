@@ -30,6 +30,7 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_store', array( __CLASS__, 'handle_store' ) );
 		add_action( 'admin_post_ghld_recheck', array( __CLASS__, 'handle_recheck' ) );
 		add_action( 'admin_post_ghld_purge', array( __CLASS__, 'handle_purge' ) );
+		add_action( 'admin_post_ghld_check', array( __CLASS__, 'handle_check' ) );
 		add_action( 'wp_ajax_ghld_enrich_batch', array( __CLASS__, 'handle_enrich_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
@@ -168,6 +169,32 @@ class GHLD_Admin {
 		GHLD_Purge::flush( 'manual' );
 
 		self::redirect( 'success', __( 'Asked the page caches to clear. Check the directory in a private window.', 'gohighlevel-integration' ) );
+	}
+
+	/**
+	 * Handle the "Check the public page" button.
+	 *
+	 * @return void
+	 */
+	public static function handle_check() {
+		self::guard( 'ghld_check' );
+
+		$url = isset( $_POST['url'] ) ? sanitize_text_field( wp_unslash( $_POST['url'] ) ) : '';
+		$url = '' === $url ? GHLD_Diagnostics::find_directory_url() : $url;
+
+		if ( '' === $url ) {
+			self::redirect( 'error', __( 'No page uses the [ghl_directory] shortcode yet, so there is nothing to check. Add the shortcode to a page, or type an address to check.', 'gohighlevel-integration' ) );
+		}
+
+		// wp_http_validate_url() is WordPress's own guard against being pointed
+		// at something internal.
+		if ( ! wp_http_validate_url( $url ) ) {
+			self::redirect( 'error', __( 'That is not an address this site can request. Use the full address, starting with https://.', 'gohighlevel-integration' ) );
+		}
+
+		set_transient( GHLD_Diagnostics::TRANSIENT, GHLD_Diagnostics::probe( $url ), 15 * MINUTE_IN_SECONDS );
+
+		self::redirect( 'success', __( 'Checked the page as an anonymous visitor. The findings are below.', 'gohighlevel-integration' ) );
 	}
 
 	/**
@@ -517,6 +544,7 @@ class GHLD_Admin {
 
 			<?php self::render_notice(); ?>
 			<?php self::render_status( $state ); ?>
+			<?php self::render_probe(); ?>
 			<?php self::render_inspection(); ?>
 
 			<form method="post" action="options.php">
@@ -605,6 +633,18 @@ class GHLD_Admin {
 							</label>
 							<p class="description">
 								<?php esc_html_e( 'A managed host serves logged-out visitors a cached copy of the page and bypasses it for anyone signed in, so your changes appear for you and nobody else. Saving these settings, a sync that changes something, or updating one contact now clears WP Engine\'s page, object and CDN caches, along with WP Rocket, W3 Total Cache, LiteSpeed, SG Optimizer and Elementor where present.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Never cache the directory', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[no_cache_directory]" value="1" <?php checked( ! empty( $settings['no_cache_directory'] ) ); ?> />
+								<?php esc_html_e( 'Ask caches never to store the page the directory is on', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'The fallback for when clearing the cache does not work — a CDN or host layer that PHP cannot purge. Instead of clearing a stale copy afterwards, this asks that no copy be kept, so the page is always built fresh. The page gives up its cache hit and so loads a little slower, which is why it is off unless you choose it. Most caches honour this; an external CDN may still need its own rule.', 'gohighlevel-integration' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -973,8 +1013,184 @@ class GHLD_Admin {
 				<button type="submit" class="button"><?php esc_html_e( 'Inspect', 'gohighlevel-integration' ); ?></button>
 				<p class="description"><?php esc_html_e( 'Naming a contact fetches that record on its own, which returns fields the contact list can leave out.', 'gohighlevel-integration' ); ?></p>
 			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:1.5em">
+				<input type="hidden" name="action" value="ghld_check" />
+				<?php wp_nonce_field( 'ghld_check' ); ?>
+				<label for="ghld-url"><?php esc_html_e( 'Check the public page:', 'gohighlevel-integration' ); ?></label>
+				<input type="url" id="ghld-url" name="url" class="regular-text" value="<?php echo esc_attr( GHLD_Diagnostics::find_directory_url() ); ?>" />
+				<button type="submit" class="button"><?php esc_html_e( 'Check', 'gohighlevel-integration' ); ?></button>
+				<p class="description">
+					<?php esc_html_e( 'Requests this address with no login, which is what everybody else gets, and reports whether they are being served the current page or a cached copy. You are the one visitor a page cache treats differently, so this is the only way to see it from in here. Change the address to check another site — the live site, say, if the people reporting a problem might be looking at that instead.', 'gohighlevel-integration' ); ?>
+				</p>
+			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Print what the public-page check found.
+	 *
+	 * @return void
+	 */
+	protected static function render_probe() {
+		$probe = get_transient( GHLD_Diagnostics::TRANSIENT );
+
+		if ( ! is_array( $probe ) || empty( $probe['url'] ) ) {
+			return;
+		}
+
+		$verdict = GHLD_Diagnostics::verdict( $probe );
+		$notice  = 'ok' === $verdict['state'] ? 'notice-success' : ( 'error' === $verdict['state'] ? 'notice-error' : 'notice-warning' );
+		$rows    = array(
+			'cached' => __( 'What a visitor gets', 'gohighlevel-integration' ),
+			'fresh'  => __( 'Built fresh, for comparison', 'gohighlevel-integration' ),
+		);
+		?>
+		<details open style="margin:1em 0;padding:1em;border:1px solid #c3c4c7;background:#fff">
+			<summary><strong><?php esc_html_e( 'The directory as the public sees it', 'gohighlevel-integration' ); ?></strong></summary>
+
+			<p><code><?php echo esc_html( $probe['url'] ); ?></code></p>
+
+			<p class="notice <?php echo esc_attr( $notice ); ?>" style="padding:8px 12px">
+				<strong><?php echo esc_html( $verdict['title'] ); ?></strong><br />
+				<?php echo esc_html( $verdict['body'] ); ?>
+			</p>
+
+			<table class="widefat striped" style="margin-bottom:1em">
+				<thead>
+					<tr>
+						<th style="width:18em"></th>
+						<?php foreach ( $rows as $label ) : ?>
+							<th><?php echo esc_html( $label ); ?></th>
+						<?php endforeach; ?>
+					</tr>
+				</thead>
+				<tbody>
+					<?php
+					$ghld_lines = array(
+						'rendered'    => __( 'HTML built at (UTC)', 'gohighlevel-integration' ),
+						'version'     => __( 'Built by plugin version', 'gohighlevel-integration' ),
+						'stylesheet'  => __( 'Stylesheet it asks for', 'gohighlevel-integration' ),
+						'synced'      => __( 'Last sync it knew about', 'gohighlevel-integration' ),
+						'cards'       => __( 'Cards on the page', 'gohighlevel-integration' ),
+						'specialties' => __( 'Specialty lines on the page', 'gohighlevel-integration' ),
+						'status'      => __( 'HTTP status', 'gohighlevel-integration' ),
+					);
+
+					foreach ( $ghld_lines as $ghld_key => $ghld_label ) :
+						?>
+						<tr>
+							<td><strong><?php echo esc_html( $ghld_label ); ?></strong></td>
+							<?php
+							foreach ( array_keys( $rows ) as $ghld_which ) :
+								$ghld_side = isset( $probe[ $ghld_which ] ) ? $probe[ $ghld_which ] : array();
+								?>
+								<td><code><?php echo esc_html( self::probe_cell( $ghld_side, $ghld_key ) ); ?></code></td>
+							<?php endforeach; ?>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<?php foreach ( $rows as $ghld_which => $ghld_label ) : ?>
+				<?php
+				$ghld_headers = isset( $probe[ $ghld_which ]['headers'] ) ? $probe[ $ghld_which ]['headers'] : array();
+
+				if ( empty( $ghld_headers ) ) {
+					continue;
+				}
+				?>
+				<p style="margin-bottom:.25em"><strong><?php echo esc_html( $ghld_label ); ?></strong> — <?php esc_html_e( 'cache headers:', 'gohighlevel-integration' ); ?></p>
+				<p style="margin-top:0">
+					<?php foreach ( $ghld_headers as $ghld_name => $ghld_value ) : ?>
+						<code style="margin-right:.75em"><?php echo esc_html( $ghld_name . ': ' . $ghld_value ); ?></code>
+					<?php endforeach; ?>
+				</p>
+			<?php endforeach; ?>
+
+			<h3><?php esc_html_e( 'Caches this plugin can clear here', 'gohighlevel-integration' ); ?></h3>
+			<?php
+			$ghld_present = array();
+			foreach ( isset( $probe['layers'] ) ? $probe['layers'] : array() as $ghld_label => $ghld_target ) {
+				if ( ! empty( $ghld_target['available'] ) ) {
+					$ghld_present[] = $ghld_label;
+				}
+			}
+
+			if ( empty( $ghld_present ) ) :
+				?>
+				<p class="notice notice-warning" style="padding:8px 12px">
+					<?php esc_html_e( 'None. No host or caching plugin on this install exposes a way for PHP to clear its page cache, so if the check above says visitors get a cached copy, purging from this screen cannot be what fixes it. Purge from your host\'s dashboard, or turn on "Never cache the directory page" in the settings below.', 'gohighlevel-integration' ); ?>
+				</p>
+			<?php else : ?>
+				<p><?php echo esc_html( implode( ', ', $ghld_present ) ); ?></p>
+			<?php endif; ?>
+
+			<?php
+			$ghld_last = isset( $probe['purge'] ) ? $probe['purge'] : array();
+
+			if ( ! empty( $ghld_last['at'] ) ) :
+				?>
+				<p>
+					<strong><?php esc_html_e( 'Last purge:', 'gohighlevel-integration' ); ?></strong>
+					<?php
+					printf(
+						/* translators: 1: how long ago, 2: what prompted it. */
+						esc_html__( '%1$s ago (%2$s).', 'gohighlevel-integration' ),
+						esc_html( human_time_diff( (int) $ghld_last['at'] ) ),
+						esc_html( '' === $ghld_last['reason'] ? __( 'unknown', 'gohighlevel-integration' ) : $ghld_last['reason'] )
+					);
+					?>
+					<?php
+					if ( empty( $ghld_last['ran'] ) ) {
+						esc_html_e( 'It reached nothing — there was no cache here to clear.', 'gohighlevel-integration' );
+					} else {
+						printf(
+							/* translators: %s: list of caches. */
+							esc_html__( 'It cleared: %s.', 'gohighlevel-integration' ),
+							esc_html( implode( ', ', (array) $ghld_last['ran'] ) )
+						);
+					}
+					?>
+				</p>
+			<?php endif; ?>
+		</details>
+		<?php
+	}
+
+	/**
+	 * One cell of the public-page comparison.
+	 *
+	 * @param array  $side One of the two responses.
+	 * @param string $key  Which line of the table.
+	 * @return string
+	 */
+	protected static function probe_cell( array $side, $key ) {
+		if ( ! empty( $side['error'] ) ) {
+			return 'error' === $key ? $side['error'] : '—';
+		}
+
+		$marker = isset( $side['marker'] ) ? $side['marker'] : array();
+
+		switch ( $key ) {
+			case 'rendered':
+				return isset( $marker['rendered'] ) ? $marker['rendered'] : __( '(no render stamp)', 'gohighlevel-integration' );
+			case 'version':
+				return isset( $marker['v'] ) ? $marker['v'] : '—';
+			case 'synced':
+				return isset( $marker['synced'] ) ? $marker['synced'] : '—';
+			case 'stylesheet':
+				return '' === (string) $side['stylesheet'] ? __( '(none loaded)', 'gohighlevel-integration' ) : (string) $side['stylesheet'];
+			case 'cards':
+				return (string) (int) $side['cards'];
+			case 'specialties':
+				return (string) (int) $side['specialties'];
+			case 'status':
+				return (string) (int) $side['status'];
+		}
+
+		return '—';
 	}
 
 	/**
