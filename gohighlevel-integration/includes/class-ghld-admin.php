@@ -29,6 +29,7 @@ class GHLD_Admin {
 		add_action( 'admin_post_ghld_inspect', array( __CLASS__, 'handle_inspect' ) );
 		add_action( 'admin_post_ghld_store', array( __CLASS__, 'handle_store' ) );
 		add_action( 'admin_post_ghld_recheck', array( __CLASS__, 'handle_recheck' ) );
+		add_action( 'admin_post_ghld_purge', array( __CLASS__, 'handle_purge' ) );
 		add_action( 'wp_ajax_ghld_enrich_batch', array( __CLASS__, 'handle_enrich_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GHLD_FILE ), array( __CLASS__, 'action_links' ) );
@@ -154,6 +155,19 @@ class GHLD_Admin {
 		}
 
 		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Handle the "Clear page caches" button.
+	 *
+	 * @return void
+	 */
+	public static function handle_purge() {
+		self::guard( 'ghld_purge' );
+
+		GHLD_Purge::flush( 'manual' );
+
+		self::redirect( 'success', __( 'Asked the page caches to clear. Check the directory in a private window.', 'gohighlevel-integration' ) );
 	}
 
 	/**
@@ -583,6 +597,18 @@ class GHLD_Admin {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Page caches', 'gohighlevel-integration' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[purge_cache]" value="1" <?php checked( ! empty( $settings['purge_cache'] ) ); ?> />
+								<?php esc_html_e( 'Clear the page cache whenever the directory changes', 'gohighlevel-integration' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'A managed host serves logged-out visitors a cached copy of the page and bypasses it for anyone signed in, so your changes appear for you and nobody else. Saving these settings, a sync that changes something, or updating one contact now clears WP Engine\'s page, object and CDN caches, along with WP Rocket, W3 Total Cache, LiteSpeed, SG Optimizer and Elementor where present.', 'gohighlevel-integration' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><label for="ghld-include"><?php esc_html_e( 'Only include tags', 'gohighlevel-integration' ); ?></label></th>
 						<td>
 							<input type="text" class="regular-text" id="ghld-include" name="<?php echo esc_attr( $name ); ?>[include_tags]" value="<?php echo esc_attr( $settings['include_tags'] ); ?>" />
@@ -915,6 +941,7 @@ class GHLD_Admin {
 					'ghld_sync'    => __( 'Sync now', 'gohighlevel-integration' ),
 					'ghld_recheck' => __( 'Look for new photos', 'gohighlevel-integration' ),
 					'ghld_test'    => __( 'Test connection', 'gohighlevel-integration' ),
+					'ghld_purge'   => __( 'Clear page caches', 'gohighlevel-integration' ),
 				);
 				foreach ( $ghld_actions as $action => $label ) :
 					?>

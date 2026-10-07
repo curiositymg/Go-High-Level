@@ -3,7 +3,7 @@
  * Plugin Name:       GoHighLevel Integration
  * Plugin URI:        https://github.com/curiositymg/Go-High-Level
  * Description:       Pulls contacts from GoHighLevel (LeadConnector) and renders them as a filterable directory with the [ghl_directory] shortcode.
- * Version:           1.16.1
+ * Version:           1.17.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Curiosity Marketing Group
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GHLD_VERSION', '1.16.1' );
+define( 'GHLD_VERSION', '1.17.0' );
 define( 'GHLD_FILE', __FILE__ );
 define( 'GHLD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GHLD_URL', plugin_dir_url( __FILE__ ) );
@@ -30,6 +30,7 @@ require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
 require_once GHLD_PATH . 'includes/class-ghld-rest.php';
 require_once GHLD_PATH . 'includes/class-ghld-seo.php';
+require_once GHLD_PATH . 'includes/class-ghld-purge.php';
 require_once GHLD_PATH . 'includes/class-ghld-admin.php';
 
 /**
@@ -73,6 +74,15 @@ function ghld_init() {
 	GHLD_Shortcode::init();
 	GHLD_Rest::init();
 	GHLD_Seo::init();
+
+	// Saving the settings changes what every card prints, so the public copy
+	// of the page has to go.
+	add_action(
+		'update_option_' . GHLD_Settings::OPTION,
+		function () {
+			GHLD_Purge::flush( 'settings' );
+		}
+	);
 
 	if ( is_admin() ) {
 		GHLD_Admin::init();

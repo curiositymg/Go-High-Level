@@ -1883,6 +1883,56 @@ ghld_ok( false !== strpos( $office_card, 'tel:8507691644' ), 'the published numb
 ghld_ok( false === strpos( $office_card, '5550100' ), "and the record's own number is nowhere on the page" );
 
 /* -------------------------------------------------------------------------
+ * Clearing the page cache when the directory changes
+ * ---------------------------------------------------------------------- */
+
+update_option( 'ghld_settings', $defaults );
+
+ghld_test_reset_actions();
+GHLD_Purge::flush( 'settings' );
+ghld_ok( ghld_test_action_fired( 'ghld_purged_cache' ), 'a purge reports itself' );
+ghld_ok( ghld_test_action_fired( 'litespeed_purge_all' ), 'and asks the caches that listen for an action' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'purge_cache' => 0 ) ) );
+ghld_test_reset_actions();
+GHLD_Purge::flush( 'settings' );
+ghld_ok( ! ghld_test_action_fired( 'ghld_purged_cache' ), 'turning the setting off stops it' );
+
+update_option( 'ghld_settings', $defaults );
+
+// The fingerprint decides whether a sync purges at all.
+$before_contacts = array(
+	array( 'id' => 'f1', 'name' => 'Ayman Aboulela', 'photo' => 'https://cdn.example.com/a.jpg', 'specialty' => 'Internal Medicine' ),
+	array( 'id' => 'f2', 'name' => 'Azzam Adhal', 'photo' => '', 'specialty' => 'Geriatrics' ),
+);
+
+ghld_same(
+	GHLD_Purge::fingerprint( $before_contacts ),
+	GHLD_Purge::fingerprint( $before_contacts ),
+	'an unchanged directory fingerprints the same, so an hourly sync purges nothing'
+);
+
+$after_photo = $before_contacts;
+$after_photo[1]['photo'] = 'https://cdn.example.com/b.jpg';
+ghld_ok(
+	GHLD_Purge::fingerprint( $before_contacts ) !== GHLD_Purge::fingerprint( $after_photo ),
+	'a headshot arriving changes it'
+);
+
+$after_specialty = $before_contacts;
+$after_specialty[0]['specialty'] = 'Cardiology';
+ghld_ok(
+	GHLD_Purge::fingerprint( $before_contacts ) !== GHLD_Purge::fingerprint( $after_specialty ),
+	'and so does a specialty being edited in GoHighLevel'
+);
+
+$reordered = array( $before_contacts[1], $before_contacts[0] );
+ghld_ok(
+	GHLD_Purge::fingerprint( $before_contacts ) !== GHLD_Purge::fingerprint( $reordered ),
+	'a different order is a different page, so that counts too'
+);
+
+/* -------------------------------------------------------------------------
  * Failure handling
  * ---------------------------------------------------------------------- */
 

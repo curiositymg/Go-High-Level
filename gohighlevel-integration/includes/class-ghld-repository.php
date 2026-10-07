@@ -160,14 +160,23 @@ class GHLD_Repository {
 		$contacts = self::localize_photos( $contacts );
 		$contacts = self::assign_slugs( $contacts );
 
+		$before = (string) self::state_value( 'fingerprint', '' );
+		$after  = GHLD_Purge::fingerprint( $contacts );
+
 		update_option( self::OPTION_CONTACTS, $contacts, false );
+
+		if ( $before !== $after ) {
+			GHLD_Purge::flush( 'sync' );
+		}
+
 		self::update_state(
 			array(
-				'synced_at'  => time(),
-				'count'      => count( $contacts ),
-				'error'      => '',
-				'failed_at'  => 0,
-				'mapping'    => GHLD_Contact::mapping_hash( $settings ),
+				'fingerprint' => $after,
+				'synced_at'   => time(),
+				'count'       => count( $contacts ),
+				'error'       => '',
+				'failed_at'   => 0,
+				'mapping'     => GHLD_Contact::mapping_hash( $settings ),
 			)
 		);
 		self::$memo = $contacts;
@@ -390,7 +399,13 @@ class GHLD_Repository {
 		self::$memo = null;
 
 		$state = self::state();
-		$with  = 0;
+
+		// Only when a batch actually turned something up.
+		if ( ! empty( $state['enrich_resolved'] ) ) {
+			GHLD_Purge::flush( 'sync' );
+		}
+
+		$with = 0;
 		foreach ( $contacts as $contact ) {
 			if ( ! empty( $contact['photo'] ) ) {
 				$with++;
@@ -531,6 +546,7 @@ class GHLD_Repository {
 				$contacts[ $index ] = $contact;
 				update_option( self::OPTION_CONTACTS, $contacts, false );
 				self::$memo = null;
+				GHLD_Purge::flush( 'contact' );
 
 				return true;
 			}
@@ -860,6 +876,19 @@ class GHLD_Repository {
 			),
 			$state
 		);
+	}
+
+	/**
+	 * One value from the sync state.
+	 *
+	 * @param string $key     State key.
+	 * @param mixed  $default Returned when unset.
+	 * @return mixed
+	 */
+	public static function state_value( $key, $default = '' ) {
+		$state = self::state();
+
+		return isset( $state[ $key ] ) ? $state[ $key ] : $default;
 	}
 
 	/**

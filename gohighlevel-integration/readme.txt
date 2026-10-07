@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.16.1
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,16 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.0 =
+* The public directory refreshes itself. Saving settings, a sync that changes
+  what a card shows, or fetching one contact now purges the host page cache, so
+  logged-out visitors see the same thing an administrator does instead of
+  whatever the cache happened to hold. WP Engine, WP Rocket, W3 Total Cache,
+  LiteSpeed, SG Optimizer, Cache Enabler, WP Fastest Cache and Elementor's CSS
+  cache are all cleared when present.
+* A "Clear page caches" button on the settings screen does it on demand, and a
+  "Page caches" checkbox turns the automatic purging off.
 
 = 1.16.1 =
 * Phone is now a mapped field too, so an office line can be published instead

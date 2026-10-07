@@ -161,12 +161,36 @@ function apply_filters( $tag, $value ) {
 	return $value;
 }
 
+$GLOBALS['ghld_test_actions'] = array();
+
 /**
- * Action no-op.
+ * Action recorder.
  *
  * @return void
  */
-function do_action() {}
+function do_action() {
+	$args = func_get_args();
+	$GLOBALS['ghld_test_actions'][] = isset( $args[0] ) ? (string) $args[0] : '';
+}
+
+/**
+ * Whether an action fired since the last reset.
+ *
+ * @param string $name Action name.
+ * @return bool
+ */
+function ghld_test_action_fired( $name ) {
+	return in_array( $name, (array) $GLOBALS['ghld_test_actions'], true );
+}
+
+/**
+ * Forget the actions recorded so far.
+ *
+ * @return void
+ */
+function ghld_test_reset_actions() {
+	$GLOBALS['ghld_test_actions'] = array();
+}
 
 /**
  * Hook registration no-ops.
@@ -662,3 +686,4 @@ require_once GHLD_PATH . 'includes/class-ghld-repository.php';
 require_once GHLD_PATH . 'includes/class-ghld-template.php';
 require_once GHLD_PATH . 'includes/class-ghld-shortcode.php';
 require_once GHLD_PATH . 'includes/class-ghld-seo.php';
+require_once GHLD_PATH . 'includes/class-ghld-purge.php';
