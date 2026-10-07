@@ -2021,6 +2021,47 @@ ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'phot
 
 ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
 
+/* Asking downstream caches not to keep the page is the only lever that reaches a
+ * copy held in somebody else's browser, office proxy or CDN edge — and it only
+ * fires on a page the plugin recognises as showing the directory, so that
+ * recognition has to cope with a layout a page builder keeps in post meta rather
+ * than in post_content. */
+
+ghld_test_set_post( '<p>Our physicians</p>[ghl_directory]' );
+ghld_ok( GHLD_Shortcode::page_has_directory(), 'a shortcode in the page content is found' );
+
+ghld_test_set_post( '<p>Nothing here</p>' );
+ghld_ok( ! GHLD_Shortcode::page_has_directory(), 'a page without the directory is not claimed' );
+
+ghld_test_set_post( '', array( '_elementor_data' => '[{"widgetType":"shortcode","settings":{"shortcode":"[ghl_directory]"}}]' ) );
+ghld_ok( GHLD_Shortcode::page_has_directory(), 'a directory placed with Elementor is found, though post_content is empty' );
+
+ghld_test_set_post( '', array( 'panels_data' => '{"widgets":[{"text":"[ghl_directory layout=list]"}]}' ) );
+ghld_ok( GHLD_Shortcode::page_has_directory(), 'and one placed with another builder' );
+
+ghld_test_set_post( '', array( '_elementor_data' => '[{"widgetType":"heading"}]' ) );
+ghld_ok( ! GHLD_Shortcode::page_has_directory(), 'while a builder page without it is still not claimed' );
+
+// The no-cache headers only go out when asked for, and only on the right page.
+ghld_test_set_post( '[ghl_directory]' );
+update_option( 'ghld_settings', $defaults );
+ghld_test_reset_actions();
+GHLD_Purge::maybe_no_cache();
+ghld_ok( ! ghld_test_action_fired( 'litespeed_control_set_nocache' ), 'left alone, the directory page stays cacheable' );
+
+update_option( 'ghld_settings', array_merge( $defaults, array( 'no_cache_directory' => 1 ) ) );
+ghld_test_reset_actions();
+GHLD_Purge::maybe_no_cache();
+ghld_ok( ghld_test_action_fired( 'litespeed_control_set_nocache' ), 'turned on, it asks caches not to keep the page' );
+
+ghld_test_set_post( '<p>Some other page</p>' );
+ghld_test_reset_actions();
+GHLD_Purge::maybe_no_cache();
+ghld_ok( ! ghld_test_action_fired( 'litespeed_control_set_nocache' ), 'and leaves every other page on the site cacheable' );
+
+ghld_test_set_post( '[ghl_directory]' );
+update_option( 'ghld_settings', $defaults );
+
 /* A server-level password gate — a staging or coming-soon lock — answers before
  * WordPress runs, so every file on the domain is refused to anyone without the
  * credentials while images hosted elsewhere load normally. That is a styled page

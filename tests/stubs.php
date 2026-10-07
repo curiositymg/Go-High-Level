@@ -858,6 +858,66 @@ function did_action( $hook ) {
 	return ! empty( $GLOBALS['ghld_test_did_wp_head'] ) && 'wp_head' === $hook ? 1 : 0;
 }
 
+/**
+ * Minimal post object.
+ */
+class WP_Post {
+
+	/**
+	 * Post ID.
+	 *
+	 * @var int
+	 */
+	public $ID = 0;
+
+	/**
+	 * Content.
+	 *
+	 * @var string
+	 */
+	public $post_content = '';
+}
+
+/**
+ * The post being served, as the test set it.
+ *
+ * @return WP_Post|null
+ */
+function get_post() {
+	return isset( $GLOBALS['ghld_test_post'] ) ? $GLOBALS['ghld_test_post'] : null;
+}
+
+/**
+ * Post meta, as the test set it.
+ *
+ * @param int    $id     Post ID.
+ * @param string $key    Meta key.
+ * @param bool   $single Single value.
+ * @return mixed
+ */
+function get_post_meta( $id, $key, $single = false ) {
+	$meta = isset( $GLOBALS['ghld_test_post_meta'] ) ? $GLOBALS['ghld_test_post_meta'] : array();
+
+	return isset( $meta[ $key ] ) ? $meta[ $key ] : '';
+}
+
+/**
+ * Set the post the next render is for.
+ *
+ * @param string $content Post content.
+ * @param array  $meta    Post meta.
+ * @param int    $id      Post ID.
+ * @return void
+ */
+function ghld_test_set_post( $content, array $meta = array(), $id = 12 ) {
+	$post               = new WP_Post();
+	$post->ID           = $id;
+	$post->post_content = $content;
+
+	$GLOBALS['ghld_test_post']      = $post;
+	$GLOBALS['ghld_test_post_meta'] = $meta;
+}
+
 require_once GHLD_PATH . 'includes/class-ghld-settings.php';
 require_once GHLD_PATH . 'includes/class-ghld-client.php';
 require_once GHLD_PATH . 'includes/class-ghld-contact.php';

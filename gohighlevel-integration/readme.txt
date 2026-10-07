@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.17.4
+Stable tag: 1.17.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,19 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.17.5 =
+* "Never cache the directory" now works on a page built with a page builder.
+  Elementor and its kind keep the layout in post meta rather than in
+  post_content, so the plugin did not recognise such a page as showing the
+  directory and the option quietly did nothing — on exactly the pages most likely
+  to need it. Elementor, SiteOrigin, Cornerstone and Oxygen layouts are read
+  now, and a ghld_page_has_directory filter covers anything else. The stylesheet
+  fallback keys off the same answer, so it benefits too.
+* This is the option to reach for when a page is current on the server but stale
+  for particular people: a copy held in their own browser, an office proxy or a
+  CDN edge node near them cannot be purged from WordPress, but it can be told not
+  to keep the page in the first place.
 
 = 1.17.4 =
 * Recognises a site behind a server-level password — a staging or coming-soon

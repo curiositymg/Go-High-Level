@@ -257,7 +257,39 @@ class GHLD_Shortcode {
 	public static function page_has_directory() {
 		$post = get_post();
 
-		return ( $post instanceof WP_Post ) && has_shortcode( (string) $post->post_content, self::TAG );
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		if ( has_shortcode( (string) $post->post_content, self::TAG ) ) {
+			return true;
+		}
+
+		// A page builder keeps its layout in post meta, not post_content, so a
+		// directory placed with one is invisible to has_shortcode(). Anything
+		// relying on this answer — enqueuing the stylesheet, and asking caches
+		// not to store the page — would then quietly do nothing on exactly the
+		// pages that need it most.
+		$builders = array( '_elementor_data', 'panels_data', '_cornerstone_data', 'ct_builder_shortcodes' );
+
+		foreach ( $builders as $key ) {
+			$data = get_post_meta( $post->ID, $key, true );
+
+			if ( is_string( $data ) && '' !== $data && false !== strpos( $data, '[' . self::TAG ) ) {
+				return true;
+			}
+		}
+
+		/**
+		 * Filter whether the page being served shows the directory.
+		 *
+		 * The escape hatch for a theme or builder that stores its layout
+		 * somewhere this does not look.
+		 *
+		 * @param bool    $has  Whether the directory was found.
+		 * @param WP_Post $post The post being served.
+		 */
+		return (bool) apply_filters( 'ghld_page_has_directory', false, $post );
 	}
 
 	/**
