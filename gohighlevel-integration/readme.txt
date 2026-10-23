@@ -4,7 +4,7 @@ Tags: gohighlevel, highlevel, leadconnector, directory, crm
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 1.18.1
+Stable tag: 1.19.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,25 @@ Hourly via WP-Cron, plus whenever the cache lifetime expires on a page view. Use
 "Sync now" for an immediate refresh.
 
 == Changelog ==
+
+= 1.19.0 =
+* "Refresh every contact from GoHighLevel" (formerly "Fetch every contact now")
+  finally does what its label promises: asks GoHighLevel about every cached
+  contact in turn and replaces the cached copy with what comes back. It is the
+  bulk form of "Put this contact in the cache now", which until now was the only
+  thing that could update a contact whose photo had been replaced.
+* Two reasons it did not. The browser loop sent "start over" on its first batch
+  only, and a contact that already had a headshot was skipped on every batch
+  after that — so on a directory of 305 with 261 headshots, it re-read the same
+  44 without one, forever. And a fresh record was only taken when it carried more
+  than the cached one, so a field cleared in GoHighLevel could never win against
+  the copy already held.
+* A contact's page link no longer breaks when its cached entry is replaced: the
+  slug is assigned across the whole set during a sync, so a freshly normalized
+  contact has none and the old one is now carried over. This affected "Put this
+  contact in the cache now" too.
+* The background sync is unchanged — it still fills gaps cheaply, which is right
+  for an hourly job.
 
 = 1.18.1 =
 * Fixes upgrading wiping the headshots. The cache flush written for an upgrade

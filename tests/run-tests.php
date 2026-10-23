@@ -2021,6 +2021,121 @@ ghld_same( 'ok', GHLD_Diagnostics::photo_verdict( array( 'fresh' => array( 'phot
 
 ghld_same( array( 'checked' => 0, 'loading' => 0, 'failing' => 0, 'external' => 0, 'examples' => array() ), GHLD_Diagnostics::photos( '<p>no cards</p>' ), 'a page with no headshots reports none rather than guessing' );
 
+/* "Refresh every contact" has to mean every contact. Enrichment deliberately
+ * skips a contact that already has a headshot and keeps the cached record unless
+ * the fresh one carries more — right for a background job filling gaps, wrong
+ * when GoHighLevel has changed and the directory has to match. A replaced photo
+ * was never looked at, and a cleared field could not win against the copy
+ * already held, so the only thing that worked was singling a contact out by
+ * hand. */
+
+update_option(
+	'ghld_settings',
+	array_merge(
+		$defaults,
+		array(
+			'api_token'     => 'pit-test',
+			'location_id'   => 'loc-test',
+			'photo_field'   => 'cf:member_profile_photo',
+			'cache_photos'  => 0,
+		)
+	)
+);
+
+// Two contacts: one whose photo changed in GoHighLevel, one whose photo was
+// cleared there. Both already have a headshot cached, so enrichment would skip
+// them both.
+update_option(
+	'ghld_contacts',
+	array(
+		array( 'id' => 'r1', 'name' => 'Ayman Aboulela', 'slug' => 'ayman-aboulela', 'photo' => 'https://cdn.example.com/old-a.jpg', 'custom' => array(), 'specialty' => 'Internal Medicine' ),
+		array( 'id' => 'r2', 'name' => 'Azzam Adhal', 'slug' => 'azzam-adhal', 'photo' => 'https://cdn.example.com/old-b.jpg', 'custom' => array(), 'specialty' => 'Geriatrics' ),
+	),
+	false
+);
+// The definitions are keyed by field ID, because a contact payload names its
+// custom fields by ID and nothing else.
+update_option(
+	'ghld_custom_fields',
+	array(
+		'FIELD1' => array( 'key' => 'member_profile_photo', 'name' => 'Member Profile Photo', 'type' => 'FILE_UPLOAD' ),
+	),
+	false
+);
+
+ghld_test_http(
+	'https://services.leadconnectorhq.com/contacts/r1',
+	array(
+		'status' => 200,
+		'body'   => wp_json_encode(
+			array(
+				'contact' => array(
+					'id'           => 'r1',
+					'firstName'    => 'Ayman',
+					'lastName'     => 'Aboulela',
+					'customFields' => array(
+						array( 'id' => 'FIELD1', 'value' => 'https://cdn.example.com/new-a.jpg' ),
+					),
+				),
+			)
+		),
+	)
+);
+
+// Cleared in GoHighLevel: the field comes back with nothing in it.
+ghld_test_http(
+	'https://services.leadconnectorhq.com/contacts/r2',
+	array(
+		'status' => 200,
+		'body'   => wp_json_encode(
+			array(
+				'contact' => array(
+					'id'           => 'r2',
+					'firstName'    => 'Azzam',
+					'lastName'     => 'Adhal',
+					'customFields' => array(),
+				),
+			)
+		),
+	)
+);
+
+$ghld_run = GHLD_Repository::refresh_once( 30, true );
+
+ghld_ok( ! is_wp_error( $ghld_run ), 'a refresh run reports back rather than erroring' );
+ghld_same( 2, $ghld_run['total'], 'it covers every cached contact' );
+ghld_same( 2, $ghld_run['done'], 'and gets through them' );
+ghld_same( 0, $ghld_run['remaining'], 'leaving none behind' );
+ghld_same( 2, $ghld_run['updated'], 'replacing both cached copies, headshot or no headshot' );
+
+$ghld_now = get_option( 'ghld_contacts', array() );
+
+ghld_same(
+	'https://cdn.example.com/new-a.jpg',
+	isset( $ghld_now[0]['photo'] ) ? $ghld_now[0]['photo'] : '',
+	'a contact whose photo changed in GoHighLevel gets the new one, which enrichment would have skipped entirely'
+);
+ghld_same(
+	'',
+	isset( $ghld_now[1]['photo'] ) ? $ghld_now[1]['photo'] : 'still here',
+	'and a contact whose photo was cleared there ends up cleared here, instead of keeping the old one'
+);
+ghld_same( 'ayman-aboulela', $ghld_now[0]['slug'], 'the slug survives, so the contact page keeps resolving' );
+ghld_same( 'azzam-adhal', $ghld_now[1]['slug'], 'for every contact' );
+ghld_same( 1, $ghld_run['photos'], 'and the count reported back is what the cache now holds' );
+
+// Picking up where it stopped, rather than starting over on each batch.
+$ghld_run = GHLD_Repository::refresh_once( 30, false );
+ghld_same( 2, $ghld_run['done'], 'a continuing batch does not rewind to the first contact' );
+
+// Storing one contact on its own keeps its slug too.
+GHLD_Repository::store_contact( array( 'id' => 'r1', 'name' => 'Ayman Aboulela', 'photo' => 'https://cdn.example.com/newer.jpg', 'custom' => array() ) );
+$ghld_now = get_option( 'ghld_contacts', array() );
+ghld_same( 'ayman-aboulela', isset( $ghld_now[0]['slug'] ) ? $ghld_now[0]['slug'] : '', 'storing a single inspected contact keeps its slug as well' );
+
+update_option( 'ghld_settings', $defaults );
+GHLD_Repository::flush();
+
 /* Upgrading must not throw away what the install already has. A step written
  * outside a version branch runs again on every later upgrade: the cache flush
  * meant for migration 3 sat in the function body, so bumping the number to 4 and

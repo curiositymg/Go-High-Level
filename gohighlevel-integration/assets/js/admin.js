@@ -59,7 +59,9 @@
 					}
 
 					var data = payload.data;
-					var done = data.total - data.remaining;
+					// The server reports how far the cursor got; fall back to
+					// deriving it, so an older response shape still animates.
+					var done = 'undefined' === typeof data.done ? data.total - data.remaining : data.done;
 
 					status.textContent = config.i18n.progress
 						.replace( '%1$s', done )

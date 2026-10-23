@@ -314,6 +314,151 @@ class GHLD_Repository {
 	}
 
 	/**
+	 * Re-read every contact from GoHighLevel and overwrite what is cached.
+	 *
+	 * The bulk form of "Put this contact in the cache now", and deliberately not
+	 * the same thing as enrichment. Enrichment fills gaps: it skips a contact
+	 * that already has a headshot and keeps the cached record unless the fresh
+	 * one carries more. Both are right for a background job that must not undo
+	 * good data on a flaky response, and both are wrong when the question is
+	 * "GoHighLevel has changed, make the directory match" — a replaced photo is
+	 * never looked at, and a cleared field cannot win against the copy already
+	 * held.
+	 *
+	 * So this one asks about every contact in turn and takes the answer whole,
+	 * exactly as storing one inspected contact does.
+	 *
+	 * @param float $seconds Time budget for this batch.
+	 * @param bool  $restart Begin again from the first contact.
+	 * @return array|WP_Error
+	 */
+	public static function refresh_once( $seconds = 10, $restart = false ) {
+		if ( ! GHLD_Settings::is_configured() ) {
+			return new WP_Error( 'ghld_not_configured', __( 'Add your GoHighLevel API token first.', 'gohighlevel-integration' ) );
+		}
+
+		$contacts = get_option( self::OPTION_CONTACTS, array() );
+		if ( ! is_array( $contacts ) || empty( $contacts ) ) {
+			return new WP_Error( 'ghld_no_contacts', __( 'There are no cached contacts yet — press "Sync now" first.', 'gohighlevel-integration' ) );
+		}
+
+		$contacts = array_values( $contacts );
+		$total    = count( $contacts );
+		$client   = new GHLD_Client();
+		$settings = GHLD_Settings::all();
+		$fields   = self::refresh_fields( $client, $restart );
+
+		$cursor = $restart ? 0 : (int) self::state_value( 'refresh_cursor', 0 );
+		if ( $cursor < 0 || $cursor >= $total ) {
+			$cursor = 0;
+		}
+
+		$deadline = microtime( true ) + max( 1, (float) $seconds );
+		$updated  = 0;
+		$failed   = 0;
+
+		while ( $cursor < $total && microtime( true ) < $deadline ) {
+			$cached = $contacts[ $cursor ];
+
+			if ( empty( $cached['id'] ) ) {
+				$cursor++;
+				continue;
+			}
+
+			$raw = $client->get_contact( $cached['id'] );
+
+			if ( is_wp_error( $raw ) ) {
+				$failed++;
+				$cursor++;
+				continue;
+			}
+
+			$full = GHLD_Contact::normalize( $raw, $fields, $settings );
+
+			// The slug is this site's, not GoHighLevel's: it is how the
+			// directory links to the contact's page, and normalizing a fresh
+			// payload does not produce one. Losing it would break that link.
+			if ( ! empty( $cached['slug'] ) ) {
+				$full['slug'] = $cached['slug'];
+			}
+
+			$full['enriched_at'] = time();
+
+			// Taken whole, including a field that is now empty. That is the
+			// point: the cache is being made to match GoHighLevel, not topped up
+			// from it.
+			$contacts[ $cursor ] = $full;
+			$updated++;
+			$cursor++;
+		}
+
+		$contacts = self::localize_photos( $contacts );
+
+		$before = (string) self::state_value( 'fingerprint', '' );
+		$after  = GHLD_Purge::fingerprint( $contacts );
+
+		update_option( self::OPTION_CONTACTS, $contacts, false );
+		self::$memo = null;
+
+		if ( $before !== $after ) {
+			GHLD_Purge::flush( 'refresh' );
+		}
+
+		$photos = 0;
+		foreach ( $contacts as $contact ) {
+			if ( ! empty( $contact['photo'] ) ) {
+				$photos++;
+			}
+		}
+
+		self::update_state(
+			array(
+				'fingerprint'      => $after,
+				'refresh_cursor'   => $cursor,
+				'refresh_updated'  => $updated,
+				'refresh_failed'   => $failed,
+				'refreshed_at'     => time(),
+			)
+		);
+
+		return array(
+			'total'     => $total,
+			'done'      => $cursor,
+			'remaining' => max( 0, $total - $cursor ),
+			'updated'   => $updated,
+			'failed'    => $failed,
+			'photos'    => $photos,
+		);
+	}
+
+	/**
+	 * Custom field definitions for a refresh run.
+	 *
+	 * "Put this contact in the cache now" reads the definitions straight from
+	 * GoHighLevel, and a payload names its custom fields by ID alone — so the
+	 * definitions are what turns an ID into the mapped photo. Stale ones resolve
+	 * nothing, which looks exactly like a contact having no headshot. Fetched
+	 * once at the start of a run and reused by the batches that follow.
+	 *
+	 * @param GHLD_Client $client  Client.
+	 * @param bool        $refetch Whether to ask GoHighLevel again.
+	 * @return array
+	 */
+	protected static function refresh_fields( GHLD_Client $client, $refetch ) {
+		if ( $refetch ) {
+			$fields = $client->get_custom_fields();
+
+			if ( ! is_wp_error( $fields ) && ! empty( $fields ) ) {
+				update_option( self::OPTION_FIELDS, $fields, false );
+
+				return $fields;
+			}
+		}
+
+		return self::custom_fields();
+	}
+
+	/**
 	 * Download headshots for a while and report where it got to.
 	 *
 	 * The per-sync budget mirrors sixty headshots at a time, which is right for
@@ -635,6 +780,13 @@ class GHLD_Repository {
 
 		foreach ( $contacts as $index => $existing ) {
 			if ( isset( $existing['id'] ) && $existing['id'] === $contact['id'] ) {
+				// Slugs are assigned across the whole set during a sync, so a
+				// freshly normalized contact has none. Carry the existing one
+				// over or this contact's page stops resolving.
+				if ( empty( $contact['slug'] ) && ! empty( $existing['slug'] ) ) {
+					$contact['slug'] = $existing['slug'];
+				}
+
 				$contacts[ $index ] = $contact;
 				update_option( self::OPTION_CONTACTS, $contacts, false );
 				self::$memo = null;

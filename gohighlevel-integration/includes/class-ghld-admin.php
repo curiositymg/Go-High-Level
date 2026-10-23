@@ -127,9 +127,9 @@ class GHLD_Admin {
 				'i18n'        => array(
 					'starting' => __( 'Starting…', 'gohighlevel-integration' ),
 					/* translators: 1: contacts done, 2: total contacts, 3: headshots found. */
-					'progress' => __( '%1$s of %2$s contacts checked — %3$s headshots so far.', 'gohighlevel-integration' ),
+					'progress' => __( '%1$s of %2$s contacts refreshed — %3$s have a headshot.', 'gohighlevel-integration' ),
 					/* translators: %s: headshots found. */
-					'done'     => __( 'Finished. %s contacts have a headshot.', 'gohighlevel-integration' ),
+					'done'     => __( 'Finished. Every contact now matches GoHighLevel; %s have a headshot.', 'gohighlevel-integration' ),
 					'failed'   => __( 'That run failed. Press the button again to carry on from where it stopped.', 'gohighlevel-integration' ),
 					'stalled'  => __( 'Stopped after a lot of batches without finishing — press again to continue.', 'gohighlevel-integration' ),
 					/* translators: 1: headshots copied, 2: headshots needing a copy. */
@@ -154,8 +154,13 @@ class GHLD_Admin {
 		check_ajax_referer( 'ghld_enrich_batch', 'nonce' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$reset  = ! empty( $_POST['reset'] ) && '1' === (string) $_POST['reset'];
-		$result = GHLD_Repository::enrich_once( 10, $reset );
+		$restart = ! empty( $_POST['reset'] ) && '1' === (string) $_POST['reset'];
+
+		// A refresh, not an enrichment: the button says every contact, so every
+		// contact is re-read and its cached copy replaced, rather than only the
+		// ones still missing a headshot. Enrichment stays as it was for the
+		// background schedule, which does want to fill gaps cheaply.
+		$result = GHLD_Repository::refresh_once( 10, $restart );
 
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
@@ -1045,7 +1050,7 @@ class GHLD_Admin {
 			</p>
 			<p>
 				<button type="button" class="button button-primary" data-ghld-fetch-all>
-					<?php esc_html_e( 'Fetch every contact now', 'gohighlevel-integration' ); ?>
+					<?php esc_html_e( 'Refresh every contact from GoHighLevel', 'gohighlevel-integration' ); ?>
 				</button>
 				<span data-ghld-fetch-status style="margin-left:.75em"></span>
 			</p>
@@ -1053,7 +1058,7 @@ class GHLD_Admin {
 				<div data-ghld-fetch-bar style="width:0;height:100%;background:#2271b1;transition:width .2s"></div>
 			</div>
 			<p class="description" style="margin-bottom:1.5em">
-				<?php esc_html_e( 'Works through every contact in batches without waiting for the background schedule, and shows how far it has got. Leave the page open until it finishes; if you close it, press the button again and it carries on from where it stopped.', 'gohighlevel-integration' ); ?>
+				<?php esc_html_e( 'Does what "Put this contact in the cache now" does, for all of them: asks GoHighLevel about every contact in turn and replaces the cached copy with what comes back — a changed photo, an edited specialty, a field you have cleared. Works in batches and shows how far it has got; leave the page open until it finishes, and if you close it, pressing the button again carries on from where it stopped. The background sync is cheaper and only fills in what is missing, so this is the one to press after editing records in GoHighLevel.', 'gohighlevel-integration' ); ?>
 			</p>
 
 			<p>
